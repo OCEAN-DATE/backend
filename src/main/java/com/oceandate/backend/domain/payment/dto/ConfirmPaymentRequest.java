@@ -1,7 +1,6 @@
 package com.oceandate.backend.domain.payment.dto;
 
 import com.oceandate.backend.domain.reservation.enums.ReservationType;
-import jakarta.persistence.NamedEntityGraph;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -17,7 +16,5 @@ public class ConfirmPaymentRequest {
     private String paymentKey;
     private String orderId;
     private BigDecimal amount;
-
     private ReservationType reservationType;
-    private Long reservationId;
 }

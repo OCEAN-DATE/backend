@@ -3,15 +3,16 @@ package com.oceandate.backend.domain.reservation.entity;
 import com.oceandate.backend.domain.payment.entity.Payment;
 import com.oceandate.backend.domain.reservation.enums.DateReservationStatus;
 import jakarta.persistence.*;
-import org.springframework.data.annotation.CreatedDate;
+import lombok.Data;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
+
 
 @Entity
 @EntityListeners(AuditingEntityListener.class)
-public class DateReservation {
+@Data
+public class DateReservation extends Reservation{
 
     @Column(nullable = false)
     private Integer targetYear;

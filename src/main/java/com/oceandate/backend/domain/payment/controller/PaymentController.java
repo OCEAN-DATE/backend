@@ -2,18 +2,21 @@ package com.oceandate.backend.domain.payment.controller;
 
 import com.oceandate.backend.domain.payment.client.TossPaymentClient;
 import com.oceandate.backend.domain.payment.dto.ConfirmPaymentRequest;
-import com.oceandate.backend.domain.payment.dto.SaveAmountRequest;
 import com.oceandate.backend.domain.payment.dto.TossPaymentResponse;
-import jakarta.servlet.http.HttpSession;
+import com.oceandate.backend.domain.payment.entity.Payment;
+import com.oceandate.backend.domain.reservation.entity.NormalReservation;
+import com.oceandate.backend.domain.reservation.entity.DateReservation;
+import com.oceandate.backend.domain.reservation.repository.NormalReservationRepository;
+import com.oceandate.backend.domain.reservation.repository.DateReservationRepository;
+import com.oceandate.backend.domain.reservation.enums.NormalReservationStatus;
+import com.oceandate.backend.domain.reservation.enums.DateReservationStatus;
+import com.oceandate.backend.domain.reservation.entity.Reservation;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.*;
 import tools.jackson.databind.ObjectMapper;
 
-import java.math.BigDecimal;
 import java.net.http.HttpResponse;
 
 @RestController
@@ -23,56 +26,75 @@ public class PaymentController {
 
     private final TossPaymentClient tossPaymentClient;
     private final ObjectMapper objectMapper;
-
-    @PostMapping("/saveAmount")
-    public ResponseEntity<?> tempsave(HttpSession session, @RequestBody SaveAmountRequest saveAmountRequest){
-        session.setAttribute(saveAmountRequest.getOrderId(), saveAmountRequest.getAmount());
-        return ResponseEntity.ok("Payment temp saved successfully");
-    }
-
-    @PostMapping("/verifyAmount")
-    public ResponseEntity<?> verifyAmount(HttpSession session, @RequestBody SaveAmountRequest saveAmountRequest){
-        BigDecimal amount = (BigDecimal) session.getAttribute(saveAmountRequest.getOrderId());
-
-        if(amount == null || amount != saveAmountRequest.getAmount()){
-            return ResponseEntity.badRequest().body("결제 금액 정보가 유효하지 않습니다.");
-        }
-
-        session.removeAttribute(saveAmountRequest.getOrderId());
-
-        return ResponseEntity.ok("Payment is valid");
-    }
+    private final NormalReservationRepository normalReservationRepository;
+    private final DateReservationRepository dateReservationRepository;
 
     @PostMapping("/confirm")
-    public ResponseEntity<?> confirmPayment(
-            HttpSession session,
-            @RequestBody ConfirmPaymentRequest confirmPaymentRequest) throws Exception {
+    @Transactional
+    public ResponseEntity<?> confirmPayment(@RequestBody ConfirmPaymentRequest request) {
 
         try {
-            BigDecimal savedAmount = (BigDecimal) session.getAttribute(confirmPaymentRequest.getOrderId());
+            // 1. DB에서 예약 조회
+            Reservation reservation;
 
-            if (savedAmount == null || !savedAmount.equals(confirmPaymentRequest.getAmount())) {
-                return ResponseEntity.badRequest().body("결제 금액 정보가 유효하지 않습니다.");
+            if ("NORMAL".equals(request.getReservationType())) {
+                reservation = normalReservationRepository.findByOrderId(request.getOrderId())
+                        .orElseThrow(() -> new IllegalArgumentException("예약을 찾을 수 없습니다."));
+            } else {
+                reservation = dateReservationRepository.findByOrderId(request.getOrderId())
+                        .orElseThrow(() -> new IllegalArgumentException("예약을 찾을 수 없습니다."));
             }
 
-            HttpResponse<String> response = tossPaymentClient.requestConfirm(confirmPaymentRequest);
+            // 2. 금액 검증
+            if (!reservation.getFinalAmount().equals(request.getAmount())) {
+                return ResponseEntity.badRequest().body(
+                        "결제 금액 불일치: 예상=" + reservation.getFinalAmount() +
+                                ", 실제=" + request.getAmount()
+                );
+            }
+
+            // 3. Toss API 호출
+            HttpResponse<String> response = tossPaymentClient.requestConfirm(
+                    new ConfirmPaymentRequest(request.getPaymentKey(),
+                            request.getOrderId(),
+                            request.getAmount(),
+                            request.getReservationType())
+            );
 
             if (response.statusCode() == 200) {
                 TossPaymentResponse tossResponse =
                         objectMapper.readValue(response.body(), TossPaymentResponse.class);
 
-                session.removeAttribute(confirmPaymentRequest.getOrderId());
+                // 4. Payment 엔티티 생성
+                Payment payment = Payment.builder()
+                        .paymentKey(tossResponse.getPaymentKey())
+                        .orderId(request.getOrderId())
+                        .amount(request.getAmount())
+                        .method(tossResponse.getMethod())
+                        .status(tossResponse.getStatus())
+                        .build();
+
+                // 5. 예약 상태 업데이트
+                if (reservation instanceof NormalReservation normalReservation) {
+                    normalReservation.setStatus(NormalReservationStatus.CONFIRMED);
+                    normalReservation.setPayment(payment);
+                    payment.setNormalReservation(normalReservation);
+                } else if (reservation instanceof DateReservation dateReservation) {
+                    dateReservation.setStatus(DateReservationStatus.PAYMENT_COMPLETED);
+                    dateReservation.setPayment(payment);
+                    payment.setDateReservation(dateReservation);
+                }
 
                 return ResponseEntity.ok(tossResponse);
-            }
-            else{
+
+            } else {
                 TossPaymentResponse.Failure failureResponse =
                         objectMapper.readValue(response.body(), TossPaymentResponse.Failure.class);
 
                 return ResponseEntity.status(response.statusCode()).body(failureResponse);
             }
-        }
-        catch(Exception e){
+
+        } catch(Exception e) {
             return ResponseEntity.internalServerError()
                     .body("결제 처리 중 오류가 발생했습니다: " + e.getMessage());
         }

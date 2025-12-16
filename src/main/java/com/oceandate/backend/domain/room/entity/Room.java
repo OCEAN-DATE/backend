@@ -1,9 +1,12 @@
 package com.oceandate.backend.domain.room.entity;
 
 import jakarta.persistence.*;
+import lombok.Data;
+
 import java.math.BigDecimal;
 
 @Entity
+@Data
 public class Room {
 
     @Id

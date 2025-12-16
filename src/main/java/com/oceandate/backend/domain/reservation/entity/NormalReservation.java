@@ -3,9 +3,15 @@ package com.oceandate.backend.domain.reservation.entity;
 import com.oceandate.backend.domain.payment.entity.Payment;
 import com.oceandate.backend.domain.reservation.enums.NormalReservationStatus;
 import jakarta.persistence.*;
+import lombok.*;
+import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 @Entity
 public class NormalReservation extends Reservation {
 

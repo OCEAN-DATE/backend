@@ -1,5 +1,8 @@
 package com.oceandate.backend.domain.payment.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.oceandate.backend.domain.payment.enums.PaymentMethod;
+import com.oceandate.backend.domain.payment.enums.PaymentStatus;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -18,11 +21,15 @@ public class TossPaymentResponse {
     private String orderName;
     private String mId;
     private String currency;
-    private String method;
+
+    @JsonProperty("method")
+    private PaymentMethod method;
 
     private BigDecimal totalAmount;
     private BigDecimal balanceAmount;
-    private String status;
+
+    @JsonProperty("status")
+    private PaymentStatus status;
 
     private LocalDateTime requestedAt;
     private LocalDateTime approvedAt;
