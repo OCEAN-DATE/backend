@@ -1,6 +1,7 @@
 package com.oceandate.backend.domain.payment.dto;
 
 import com.oceandate.backend.domain.reservation.enums.ReservationType;
+import jakarta.persistence.NamedEntityGraph;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -10,11 +11,12 @@ import java.math.BigDecimal;
 
 @Data
 @Builder
-@AllArgsConstructor
 @NoArgsConstructor
-public class SaveAmountRequest {
-    String orderId;
-    BigDecimal amount;
+@AllArgsConstructor
+public class ConfirmPaymentRequest {
+    private String paymentKey;
+    private String orderId;
+    private BigDecimal amount;
 
     private ReservationType reservationType;
     private Long reservationId;
