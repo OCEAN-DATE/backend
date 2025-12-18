@@ -1,0 +1,46 @@
+name: Mattermost Backend Push Notify (Slack Style)
+
+on:
+  push:
+    branches:
+      - "**"
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+
+    steps:
+      
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Build pushed commit list
+        run: |
+          COMMITS=$(git log --pretty=format:"• %h %s" \
+            ${{ github.event.before }}..${{ github.sha }})
+
+          
+          if [ -z "$COMMITS" ]; then
+            COMMITS=$(git log -1 --pretty=format:"• %h %s")
+          fi
+
+          COMMITS=$(echo "$COMMITS" | sed ':a;N;$!ba;s/\n/\\n/g')
+          echo "COMMIT_LIST=$COMMITS" >> $GITHUB_ENV
+
+          COMPARE_URL="https://github.com/${GITHUB_REPOSITORY}/compare/${GITHUB_EVENT_BEFORE}...${GITHUB_SHA}"
+          echo "COMPARE_URL=$COMPARE_URL" >> $GITHUB_ENV
+
+      - name: Send notification to Mattermost
+        run: |
+          curl -X POST -H "Content-Type: application/json" \
+          -d "{
+            \"attachments\": [
+              {
+                \"color\": \"#1976D2\",
+                \"title\": \"[BACK] Push • ${GITHUB_REF_NAME}\",
+                \"text\": \"작성자: ${GITHUB_ACTOR}\n레포: ${GITHUB_REPOSITORY}\n\n${COMMIT_LIST}\n\nCompare → ${COMPARE_URL}\"
+              }
+            ]
+          }" \
+          https://meeting.ssafy.com/hooks/3yhmy8s3ptbb5pq6egcb4z5bfa
