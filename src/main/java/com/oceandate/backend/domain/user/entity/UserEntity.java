@@ -35,13 +35,13 @@ public class UserEntity {
     @Column(name = "is_social", nullable = false)
     private Boolean isSocial;
 
-    @Enumerated(EnumType.STRING) // 지정하지 않으면 숫자가 들어감
-    @Column(name = "social_provider_type")
-    private SocialProviderType socialProviderType;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "role_type", nullable = false)
-    private UserRoleType roleType;
+//    @Enumerated(EnumType.STRING) // 지정하지 않으면 숫자가 들어감
+//    @Column(name = "social_provider_type")
+//    private SocialProviderType socialProviderType;
+//
+//    @Enumerated(EnumType.STRING)
+//    @Column(name = "role_type", nullable = false)
+//    private UserRoleType roleType;
 
     @Column(name = "nickname")
     private String nickname;
