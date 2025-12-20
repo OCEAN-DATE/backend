@@ -1,4 +1,4 @@
-package com.oceandate.backend.global.exception.handlers;
+package com.oceandate.backend.global.exception;
 
 import com.oceandate.backend.global.exception.constant.ErrorCode;
 import lombok.Getter;
