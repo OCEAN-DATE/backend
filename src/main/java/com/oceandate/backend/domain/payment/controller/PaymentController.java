@@ -4,13 +4,7 @@ import com.oceandate.backend.domain.payment.client.TossPaymentClient;
 import com.oceandate.backend.domain.payment.dto.ConfirmPaymentRequest;
 import com.oceandate.backend.domain.payment.dto.TossPaymentResponse;
 import com.oceandate.backend.domain.payment.entity.Payment;
-import com.oceandate.backend.domain.reservation.entity.NormalReservation;
-import com.oceandate.backend.domain.reservation.entity.DateReservation;
-import com.oceandate.backend.domain.reservation.repository.NormalReservationRepository;
-import com.oceandate.backend.domain.reservation.repository.DateReservationRepository;
-import com.oceandate.backend.domain.reservation.enums.NormalReservationStatus;
-import com.oceandate.backend.domain.reservation.enums.DateReservationStatus;
-import com.oceandate.backend.domain.reservation.entity.Reservation;
+import com.oceandate.backend.domain.matching.enums.ApplicationStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,8 +20,6 @@ public class PaymentController {
 
     private final TossPaymentClient tossPaymentClient;
     private final ObjectMapper objectMapper;
-    private final NormalReservationRepository normalReservationRepository;
-    private final DateReservationRepository dateReservationRepository;
 
     @PostMapping("/confirm")
     @Transactional
@@ -80,7 +72,7 @@ public class PaymentController {
                     normalReservation.setPayment(payment);
                     payment.setNormalReservation(normalReservation);
                 } else if (reservation instanceof DateReservation dateReservation) {
-                    dateReservation.setStatus(DateReservationStatus.PAYMENT_COMPLETED);
+                    dateReservation.setStatus(ApplicationStatus.PAYMENT_COMPLETED);
                     dateReservation.setPayment(payment);
                     payment.setDateReservation(dateReservation);
                 }

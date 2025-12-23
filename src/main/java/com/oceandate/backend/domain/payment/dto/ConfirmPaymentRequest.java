@@ -1,6 +1,5 @@
 package com.oceandate.backend.domain.payment.dto;
 
-import com.oceandate.backend.domain.reservation.enums.ReservationType;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

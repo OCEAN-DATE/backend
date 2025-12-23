@@ -1,9 +1,7 @@
 package com.oceandate.backend.domain.payment.entity;
 
-import com.oceandate.backend.domain.reservation.entity.DateReservation;
 import com.oceandate.backend.domain.payment.enums.PaymentMethod;
 import com.oceandate.backend.domain.payment.enums.PaymentStatus;
-import com.oceandate.backend.domain.reservation.entity.NormalReservation;
 import jakarta.persistence.*;
 import lombok.Builder;
 import lombok.Data;
