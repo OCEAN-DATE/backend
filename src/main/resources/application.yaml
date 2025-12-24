@@ -28,3 +28,8 @@ springdoc:
     path: /swagger-ui.html
   default-consumes-media-type: application/json
   default-produces-media-type: application/json
+
+toss:
+  payments:
+    secret-key: ${TOSS_SECRET_KEY}
+    base-url: https://api.tosspayments.com

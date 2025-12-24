@@ -1,5 +1,6 @@
 package com.oceandate.backend.domain.user.entity;
 
+import com.oceandate.backend.domain.user.enums.Gender;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -56,6 +57,10 @@ public class UserEntity {
     @LastModifiedDate
     @Column(name = "updated_date")
     private LocalDateTime updatedDate;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private Gender gender;
 
 }
 

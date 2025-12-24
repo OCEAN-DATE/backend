@@ -1,0 +1,16 @@
+package com.oceandate.backend.domain.matching.dto;
+
+import jakarta.validation.constraints.NotNull;
+import lombok.*;
+
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class RotationRequest {
+
+    private Long eventId;
+    private String job;
+    private String introduction;
+}

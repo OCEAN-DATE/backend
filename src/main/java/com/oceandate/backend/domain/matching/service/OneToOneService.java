@@ -4,6 +4,10 @@ import com.oceandate.backend.domain.matching.dto.OneToOneRequest;
 import com.oceandate.backend.domain.matching.entity.OneToOne;
 import com.oceandate.backend.domain.matching.enums.ApplicationStatus;
 import com.oceandate.backend.domain.matching.repository.OneToOneRepository;
+import com.oceandate.backend.domain.user.entity.UserEntity;
+import com.oceandate.backend.domain.user.repository.UserRepository;
+import com.oceandate.backend.global.exception.CustomException;
+import com.oceandate.backend.global.exception.constant.ErrorCode;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -16,12 +20,16 @@ import java.util.List;
 public class OneToOneService {
 
     private final OneToOneRepository oneToOneRepository;
+    private final UserRepository userRepository;
 
     @Transactional
     public OneToOne createApplication(Long userId, OneToOneRequest request){
 
+        UserEntity user = userRepository.findById(userId)
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
+
         OneToOne application = OneToOne.builder()
-                .userId(userId)
+                .user(user)
                 .preferredDates(request.getPreferredDates())
                 .introduction(request.getIntroduction())
                 .location(request.getLocation())

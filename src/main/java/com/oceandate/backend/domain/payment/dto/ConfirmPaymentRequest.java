@@ -1,5 +1,6 @@
 package com.oceandate.backend.domain.payment.dto;
 
+import com.oceandate.backend.domain.matching.enums.MatchingType;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -15,5 +16,5 @@ public class ConfirmPaymentRequest {
     private String paymentKey;
     private String orderId;
     private BigDecimal amount;
-    private ReservationType reservationType;
+    private MatchingType matchingType;
 }
