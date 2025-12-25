@@ -24,12 +24,6 @@ public class Rotation extends Matching{
     @JoinColumn(name = "event_id", nullable = false)
     private RotationEvent event;
 
-    @Column(nullable = false, unique = true)
-    private String orderId;
-
-    @Column
-    private String paymentKey;
-
     @Column(name = "employment_certificate_url")
     private String employmentCertificateUrl;
 

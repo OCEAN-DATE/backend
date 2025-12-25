@@ -6,11 +6,11 @@ import com.oceandate.backend.domain.matching.enums.ApplicationStatus;
 import com.oceandate.backend.domain.matching.service.OneToOneService;
 import com.oceandate.backend.domain.user.entity.UserEntity;
 import com.oceandate.backend.domain.user.repository.UserRepository;
-import io.swagger.v3.oas.annotations.tags.Tag;
+import com.oceandate.backend.global.exception.CustomException;
+import com.oceandate.backend.global.exception.constant.ErrorCode;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -60,6 +60,19 @@ public class OneToOneController {
             @RequestParam ApplicationStatus status){
 
         oneToOneService.updateStatus(id, status);
+        return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/my")
+    public ResponseEntity<List<OneToOne>> getMyApplications(
+            @RequestParam Long userId
+    ){
+        UserEntity user = userRepository.findById(userId)
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
+
+        List<OneToOne> response = oneToOneService.getMyApplications(userId);
+
+        return ResponseEntity.ok(response);
     }
 
 

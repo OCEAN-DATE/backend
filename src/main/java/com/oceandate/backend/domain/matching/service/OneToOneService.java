@@ -53,4 +53,8 @@ public class OneToOneService {
 
         application.setStatus(status);
     }
+
+    public List<OneToOne> getMyApplications(Long userId) {
+        return oneToOneRepository.findByUserId(userId);
+    }
 }

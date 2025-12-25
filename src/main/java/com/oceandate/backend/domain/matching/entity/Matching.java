@@ -39,6 +39,12 @@ public abstract class Matching {
     @Column(columnDefinition = "TEXT", nullable = false)
     private String introduction;
 
+    @Column(nullable = false, unique = true)
+    private String orderId;
+
+    @Column
+    private String paymentKey;
+
     @Column(nullable = false, updatable = false)
     protected LocalDateTime createdAt;
 
