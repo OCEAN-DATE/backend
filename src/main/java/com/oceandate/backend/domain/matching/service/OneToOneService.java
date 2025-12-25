@@ -13,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -28,9 +29,13 @@ public class OneToOneService {
         UserEntity user = userRepository.findById(userId)
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
+        String orderId = "rotation_" + UUID.randomUUID().toString();
+
         OneToOne application = OneToOne.builder()
                 .user(user)
                 .preferredDates(request.getPreferredDates())
+                .job(request.getJob())
+                .status(ApplicationStatus.APPLICATION_SUBMITTED)
                 .introduction(request.getIntroduction())
                 .location(request.getLocation())
                 .build();
