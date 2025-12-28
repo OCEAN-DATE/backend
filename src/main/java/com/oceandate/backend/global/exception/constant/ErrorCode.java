@@ -40,6 +40,10 @@ public enum ErrorCode {
     // 결제
     PAYMENT_FAILED("PAYMENT_400", "결제에 실패했습니다."),
     REFUND_FAILED("PAYMENT_400", "환불에 실패했습니다."),
+    ORDER_NOT_FOUND("ORDER_404", "주문을 찾을 수 없습니다."),
+    INVALID_PAYMENT_STATUS("PAYMENT_400", "결제 가능한 상태가 아닙니다."),
+    PAYMENT_AMOUNT_MISMATCH("PAYMENT_400", "결제 금액이 일치하지 않습니다."),
+    PAYMENT_CONFIRMATION_FAILED("PAYMENT_400", "결제 승인에 실패했습니다."),
 
     // 파일
     FILE_UPLOAD_FAILED("FILE_500", "파일 업로드에 실패했습니다.");

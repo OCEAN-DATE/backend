@@ -29,7 +29,7 @@ public class OneToOneService {
         UserEntity user = userRepository.findById(userId)
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
-        String orderId = "rotation_" + UUID.randomUUID().toString();
+        String orderId = "onetoone" + UUID.randomUUID().toString();
 
         OneToOne application = OneToOne.builder()
                 .user(user)
@@ -38,6 +38,7 @@ public class OneToOneService {
                 .status(ApplicationStatus.APPLICATION_SUBMITTED)
                 .introduction(request.getIntroduction())
                 .location(request.getLocation())
+                .orderId(orderId)
                 .build();
 
         return oneToOneRepository.save(application);

@@ -32,4 +32,4 @@ springdoc:
 toss:
   payments:
     secret-key: ${TOSS_SECRET_KEY}
-    base-url: https://api.tosspayments.com
+    base-url: https://api.tosspayments.com/v1/payments

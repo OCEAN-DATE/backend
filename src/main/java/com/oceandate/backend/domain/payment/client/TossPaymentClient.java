@@ -1,6 +1,6 @@
 package com.oceandate.backend.domain.payment.client;
 
-import com.oceandate.backend.domain.payment.dto.ConfirmPaymentRequest;
+import com.oceandate.backend.domain.payment.dto.PaymentConfirmRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -29,7 +29,7 @@ public class TossPaymentClient {
                 .encodeToString((secretKey + ":").getBytes());
     }
 
-    public HttpResponse<String> requestConfirm(ConfirmPaymentRequest confirmPaymentRequest)
+    public HttpResponse<String> requestConfirm(PaymentConfirmRequest confirmPaymentRequest)
             throws IOException, InterruptedException {
         String tossOrderId = confirmPaymentRequest.getOrderId();
         BigDecimal amount = confirmPaymentRequest.getAmount();
