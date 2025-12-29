@@ -1,11 +1,13 @@
 package com.oceandate.backend.domain.matching.controller;
 
 import com.oceandate.backend.domain.matching.dto.OneToOneEventRequest;
+import com.oceandate.backend.domain.matching.dto.OneToOneEventResponse;
 import com.oceandate.backend.domain.matching.dto.OneToOneRequest;
 import com.oceandate.backend.domain.matching.dto.OneToOneResponse;
 import com.oceandate.backend.domain.matching.entity.OneToOne;
 import com.oceandate.backend.domain.matching.entity.OneToOneEvent;
 import com.oceandate.backend.domain.matching.enums.ApplicationStatus;
+import com.oceandate.backend.domain.matching.enums.EventStatus;
 import com.oceandate.backend.domain.matching.service.OneToOneEventService;
 import com.oceandate.backend.domain.matching.service.OneToOneService;
 import com.oceandate.backend.domain.user.entity.UserEntity;
@@ -94,6 +96,16 @@ public class OneToOneController {
         OneToOneEvent event = oneToOneEventService.createEvent(request);
 
         return ResponseEntity.ok(event);
+    }
+
+    @Operation(summary = "일대일 소개팅 이벤트 목록 조회")
+    @GetMapping("/event")
+    public ResponseEntity<List<OneToOneEventResponse>> getEvents(
+            @RequestParam(required = false) EventStatus status
+            ){
+        List<OneToOneEventResponse> response = oneToOneEventService.getEvents(status);
+
+        return ResponseEntity.ok(response);
     }
 
 }

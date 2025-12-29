@@ -1,6 +1,7 @@
 package com.oceandate.backend.domain.matching.service;
 
 import com.oceandate.backend.domain.matching.dto.OneToOneEventRequest;
+import com.oceandate.backend.domain.matching.dto.OneToOneEventResponse;
 import com.oceandate.backend.domain.matching.dto.OneToOneRequest;
 import com.oceandate.backend.domain.matching.entity.OneToOneEvent;
 import com.oceandate.backend.domain.matching.enums.EventStatus;
@@ -10,6 +11,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional
@@ -32,5 +35,23 @@ public class OneToOneEventService {
         oneToOneEventRepository.save(event);
 
         return event;
+    }
+
+    public List<OneToOneEventResponse> getEvents(EventStatus status) {
+        List<OneToOneEvent> response;
+
+        if(status == null){
+           response = oneToOneEventRepository.findAll();
+
+           return response.stream()
+                   .map(OneToOneEventResponse::from)
+                   .collect(Collectors.toList());
+        }
+
+        response = oneToOneEventRepository.findByStatus(status);
+
+        return response.stream()
+                .map(OneToOneEventResponse::from)
+                .collect(Collectors.toList());
     }
 }
