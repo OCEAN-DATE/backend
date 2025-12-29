@@ -12,13 +12,15 @@ import com.oceandate.backend.domain.user.entity.UserEntity;
 import com.oceandate.backend.domain.user.repository.UserRepository;
 import com.oceandate.backend.global.exception.CustomException;
 import com.oceandate.backend.global.exception.constant.ErrorCode;
-import jakarta.validation.Valid;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+@Tag(name = "One To One")
 @RestController
 @RequestMapping("/api/onetoone")
 @RequiredArgsConstructor
@@ -28,6 +30,7 @@ public class OneToOneController {
     private final OneToOneEventService oneToOneEventService;
     private final UserRepository userRepository;
 
+    @Operation(summary = "일대일 소개팅 신청", description = "소개팅 신청 후 관리자 승인 필요, 바로 결제 X")
     @PostMapping("/applications")
     public ResponseEntity<OneToOne> createApplication(
             @RequestBody OneToOneRequest dto,
@@ -44,6 +47,7 @@ public class OneToOneController {
         return ResponseEntity.ok(application);
     }
 
+    @Operation(summary = "일대일 소개팅 신청 목록 조회", description = "status를 null로 두면 전체 목록 조회")
     @GetMapping("/applications")
 //    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<OneToOneResponse>> getApplications(
@@ -58,6 +62,7 @@ public class OneToOneController {
         return ResponseEntity.ok(applications);
     }
 
+    @Operation(summary = "일대일 소개팅 신청 상태 변경(관리자)")
     @PatchMapping("/application/{id}/status")
 //    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> updateStatus(
@@ -68,6 +73,7 @@ public class OneToOneController {
         return ResponseEntity.ok().build();
     }
 
+    @Operation(summary = "내 일대일 소개팅 신청 내역 조회", description = "조회 시 status가 PAYMENT_PENDING이면 결제하기 버튼 활성화")
     @GetMapping("/my")
     public ResponseEntity<List<OneToOneResponse>> getMyApplications(
             @RequestParam Long userId
@@ -80,6 +86,7 @@ public class OneToOneController {
         return ResponseEntity.ok(response);
     }
 
+    @Operation(summary = "일대일 소개팅 이벤트 생성(관리자)")
     @PostMapping("/event")
     public ResponseEntity<OneToOneEvent> createEvent(
             @RequestBody OneToOneEventRequest request
