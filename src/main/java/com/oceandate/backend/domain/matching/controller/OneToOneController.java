@@ -1,8 +1,12 @@
 package com.oceandate.backend.domain.matching.controller;
 
+import com.oceandate.backend.domain.matching.dto.OneToOneEventRequest;
 import com.oceandate.backend.domain.matching.dto.OneToOneRequest;
+import com.oceandate.backend.domain.matching.dto.OneToOneResponse;
 import com.oceandate.backend.domain.matching.entity.OneToOne;
+import com.oceandate.backend.domain.matching.entity.OneToOneEvent;
 import com.oceandate.backend.domain.matching.enums.ApplicationStatus;
+import com.oceandate.backend.domain.matching.service.OneToOneEventService;
 import com.oceandate.backend.domain.matching.service.OneToOneService;
 import com.oceandate.backend.domain.user.entity.UserEntity;
 import com.oceandate.backend.domain.user.repository.UserRepository;
@@ -21,11 +25,12 @@ import java.util.List;
 public class OneToOneController {
 
     private final OneToOneService oneToOneService;
+    private final OneToOneEventService oneToOneEventService;
     private final UserRepository userRepository;
 
     @PostMapping("/applications")
     public ResponseEntity<OneToOne> createApplication(
-            @RequestBody @Valid OneToOneRequest dto,
+            @RequestBody OneToOneRequest dto,
             @RequestParam Long userId) {
 
         UserEntity user = userRepository.findById(userId).
@@ -41,14 +46,14 @@ public class OneToOneController {
 
     @GetMapping("/applications")
 //    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<List<OneToOne>> getApplications(
+    public ResponseEntity<List<OneToOneResponse>> getApplications(
             Long userId,
-            @RequestParam(required = false) String status){
+            @RequestParam(required = false) ApplicationStatus status){
 
         UserEntity user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
 
-        List<OneToOne> applications = oneToOneService.getApplications(status);
+        List<OneToOneResponse> applications = oneToOneService.getApplications(status);
 
         return ResponseEntity.ok(applications);
     }
@@ -64,17 +69,25 @@ public class OneToOneController {
     }
 
     @GetMapping("/my")
-    public ResponseEntity<List<OneToOne>> getMyApplications(
+    public ResponseEntity<List<OneToOneResponse>> getMyApplications(
             @RequestParam Long userId
     ){
         UserEntity user = userRepository.findById(userId)
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
-        List<OneToOne> response = oneToOneService.getMyApplications(userId);
+        List<OneToOneResponse> response = oneToOneService.getMyApplications(userId);
 
         return ResponseEntity.ok(response);
     }
 
+    @PostMapping("/event")
+    public ResponseEntity<OneToOneEvent> createEvent(
+            @RequestBody OneToOneEventRequest request
+    ){
+        OneToOneEvent event = oneToOneEventService.createEvent(request);
+
+        return ResponseEntity.ok(event);
+    }
 
 }
 

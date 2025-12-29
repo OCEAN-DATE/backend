@@ -17,6 +17,10 @@ import java.util.List;
 @SuperBuilder
 public class OneToOne extends Matching {
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "event_id", nullable = false)
+    private OneToOneEvent event;
+
     @ElementCollection
     @CollectionTable(name = "preferred_dates",
             joinColumns = @JoinColumn(name = "application_id"))

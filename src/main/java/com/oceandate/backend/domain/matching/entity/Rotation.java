@@ -3,10 +3,7 @@ package com.oceandate.backend.domain.matching.entity;
 import com.oceandate.backend.domain.matching.enums.VerificationStatus;
 import com.oceandate.backend.domain.user.entity.UserEntity;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 import lombok.experimental.SuperBuilder;
 
 import java.time.LocalDateTime;
@@ -47,6 +44,7 @@ public class Rotation extends Matching{
     private LocalDateTime approvedAt;
 
     @Column
+    @Builder.Default
     private Boolean refunded = false;
 
     @Column

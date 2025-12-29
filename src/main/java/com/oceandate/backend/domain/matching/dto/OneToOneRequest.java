@@ -7,6 +7,7 @@ import java.util.List;
 
 @Data
 public class OneToOneRequest {
+    private Long eventId;
     private List<LocalDate> preferredDates;
     private String introduction;
     private String job;

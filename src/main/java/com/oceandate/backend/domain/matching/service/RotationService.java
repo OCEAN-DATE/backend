@@ -18,6 +18,7 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Service
@@ -37,7 +38,6 @@ public class RotationService {
         UserEntity user = userRepository.findById(userId)
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
-        // 비관적 락으로 정원 체크
         RotationEvent event = rotationEventRepository.findByIdWithLock(request.getEventId())
                 .orElseThrow(() -> new CustomException(ErrorCode.EVENT_NOT_FOUND));
 
@@ -57,10 +57,8 @@ public class RotationService {
             throw new CustomException(ErrorCode.FEMALE_CAPACITY_FULL);
         }
 
-        // orderId 생성
         String orderId = "rotation_" + UUID.randomUUID().toString();
 
-        // 신청 생성 (결제 대기 상태)
         Rotation application = Rotation.builder()
                 .user(user)
                 .event(event)
@@ -69,6 +67,7 @@ public class RotationService {
                 .orderId(orderId)
                 .status(ApplicationStatus.PAYMENT_PENDING)
                 .verificationStatus(VerificationStatus.PENDING)
+                .documentDeadline(LocalDateTime.now().plusDays(1))
                 .refunded(false)
                 .build();
 

@@ -4,8 +4,8 @@ import com.oceandate.backend.domain.payment.dto.PaymentConfirmRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -19,7 +19,7 @@ import java.util.Base64;
 @RequiredArgsConstructor
 public class TossPaymentClient {
 
-    @Value("${toss.secret-key}")
+    @Value("${toss.payments.secret-key}")
     private String secretKey;
 
     private final ObjectMapper objectMapper;

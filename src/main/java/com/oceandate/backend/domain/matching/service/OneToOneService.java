@@ -1,8 +1,12 @@
 package com.oceandate.backend.domain.matching.service;
 
 import com.oceandate.backend.domain.matching.dto.OneToOneRequest;
+import com.oceandate.backend.domain.matching.dto.OneToOneResponse;
 import com.oceandate.backend.domain.matching.entity.OneToOne;
+import com.oceandate.backend.domain.matching.entity.OneToOneEvent;
 import com.oceandate.backend.domain.matching.enums.ApplicationStatus;
+import com.oceandate.backend.domain.matching.enums.EventStatus;
+import com.oceandate.backend.domain.matching.repository.OneToOneEventRepository;
 import com.oceandate.backend.domain.matching.repository.OneToOneRepository;
 import com.oceandate.backend.domain.user.entity.UserEntity;
 import com.oceandate.backend.domain.user.repository.UserRepository;
@@ -14,6 +18,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -21,6 +26,7 @@ import java.util.UUID;
 public class OneToOneService {
 
     private final OneToOneRepository oneToOneRepository;
+    private final OneToOneEventRepository oneToOneEventRepository;
     private final UserRepository userRepository;
 
     @Transactional
@@ -29,27 +35,47 @@ public class OneToOneService {
         UserEntity user = userRepository.findById(userId)
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
+        OneToOneEvent event = oneToOneEventRepository.findById(request.getEventId())
+                .orElseThrow(() -> new CustomException(ErrorCode.EVENT_NOT_FOUND));
+
+        if(event.getStatus() != EventStatus.OPEN){
+            throw new CustomException(ErrorCode.EVENT_CLOSED);
+        }
+
         String orderId = "onetoone" + UUID.randomUUID().toString();
 
         OneToOne application = OneToOne.builder()
                 .user(user)
+                .event(event)
                 .preferredDates(request.getPreferredDates())
                 .job(request.getJob())
                 .status(ApplicationStatus.APPLICATION_SUBMITTED)
                 .introduction(request.getIntroduction())
                 .location(request.getLocation())
                 .orderId(orderId)
+                .amount(event.getAmount())
                 .build();
 
         return oneToOneRepository.save(application);
     }
 
-    public List<OneToOne> getApplications(String status) {
+    public List<OneToOneResponse> getApplications(ApplicationStatus status) {
+        List<OneToOne> applications;
+
         if(status == null){
-            return oneToOneRepository.findAll();
+            applications = oneToOneRepository.findAll();
+            return applications.stream()
+                    .map(OneToOneResponse::from)
+                    .collect(Collectors.toList());
+
+        }
+        else{
+            applications = oneToOneRepository.findByStatus(status);
         }
 
-        return oneToOneRepository.findByStatus(status);
+        return applications.stream()
+                .map(OneToOneResponse::from)
+                .collect(Collectors.toList());
     }
 
     @Transactional
@@ -60,7 +86,11 @@ public class OneToOneService {
         application.setStatus(status);
     }
 
-    public List<OneToOne> getMyApplications(Long userId) {
-        return oneToOneRepository.findByUserId(userId);
+    public List<OneToOneResponse> getMyApplications(Long userId) {
+        List<OneToOne> applications = oneToOneRepository.findByUserId(userId);
+
+        return applications.stream()
+                .map(OneToOneResponse::from)
+                .collect(Collectors.toList());
     }
 }

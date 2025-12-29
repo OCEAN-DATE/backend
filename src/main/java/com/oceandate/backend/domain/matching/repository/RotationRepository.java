@@ -30,16 +30,14 @@ public interface RotationRepository extends JpaRepository<Rotation, Long> {
 
     boolean existsByUserAndEvent(UserEntity user, RotationEvent event);
 
-    @Query("SELECT a FROM RotationApplication a WHERE a.event.id = :eventId AND a.user.email = :email")
+    @Query("SELECT a FROM Rotation a WHERE a.event.id = :eventId AND a.user.email = :email")
     Optional<Rotation> findByEventIdAndUserEmail(
              Long eventId,
              String email);
 
-    List<Rotation> findByEventIdAndAssignedNumberIn(Long eventId, List<Integer> numbers);
-
     List<Rotation> findByEventAndStatus(RotationEvent event, ApplicationStatus status);
 
-    @Query("SELECT a FROM RotationApplication a " +
+    @Query("SELECT a FROM Rotation a " +
             "WHERE a.status = :status " +
             "AND a.documentDeadline BETWEEN :startTime AND :endTime " +
             "AND a.documentSubmittedAt IS NULL")

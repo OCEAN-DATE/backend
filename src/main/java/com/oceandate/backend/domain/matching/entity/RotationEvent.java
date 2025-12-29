@@ -7,6 +7,7 @@ import com.oceandate.backend.global.exception.constant.ErrorCode;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
@@ -34,9 +35,11 @@ public class RotationEvent {
     private Integer femaleCapacity;
 
     @Column(nullable = false)
+    @Builder.Default
     private Integer approvedMaleCount = 0;
 
     @Column(nullable = false)
+    @Builder.Default
     private Integer approvedFemaleCount = 0;
 
     @Column(nullable = false)
@@ -46,7 +49,7 @@ public class RotationEvent {
     private String location;
 
     @Column(nullable = false)
-    private Long amount;  // 참가비
+    private BigDecimal amount;  // 참가비
 
     @Column(columnDefinition = "TEXT")
     private String description;
