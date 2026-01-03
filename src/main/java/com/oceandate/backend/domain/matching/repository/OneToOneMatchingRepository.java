@@ -1,0 +1,22 @@
+package com.oceandate.backend.domain.matching.repository;
+
+import com.oceandate.backend.domain.matching.entity.OneToOneMatching;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+
+import java.util.List;
+
+public interface OneToOneMatchingRepository extends JpaRepository<OneToOneMatching, Long> {
+
+    @Query("SELECT m FROM OneToOneMatching m " +
+            "JOIN FETCH m.event " +
+            "JOIN FETCH m.maleApplication ma " +
+            "JOIN FETCH ma.user " +
+            "JOIN FETCH m.femaleApplication fa " +
+            "JOIN FETCH fa.user " +
+            "WHERE m.event.id = :eventId " +
+            "ORDER BY m.matchedAt DESC")
+    List<OneToOneMatching> findAllByEventId(Long eventId);
+
+    boolean existsByMaleApplicationIdOrFemaleApplicationId(Long maleId, Long femaleId);
+}

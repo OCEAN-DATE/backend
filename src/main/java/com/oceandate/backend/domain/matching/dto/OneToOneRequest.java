@@ -11,5 +11,6 @@ public class OneToOneRequest {
     private List<LocalDate> preferredDates;
     private String introduction;
     private String job;
-    private String location;
+    private String hobby;
+    private String idealType;
 }

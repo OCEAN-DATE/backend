@@ -1,12 +1,10 @@
 package com.oceandate.backend.domain.matching.entity;
 
-import com.oceandate.backend.domain.matching.enums.ApplicationStatus;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.List;
 
 @Entity
@@ -27,6 +25,9 @@ public class OneToOne extends Matching {
     @Column(name = "preferred_date")
     private List<LocalDate> preferredDates;
 
-    private String location;
+    @Column(columnDefinition = "TEXT", nullable = false)
+    private String idealType;
 
+    @Column(columnDefinition = "TEXT", nullable = false)
+    private String hobby;
 }

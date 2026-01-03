@@ -51,7 +51,8 @@ public class OneToOneService {
                 .job(request.getJob())
                 .status(ApplicationStatus.APPLICATION_SUBMITTED)
                 .introduction(request.getIntroduction())
-                .location(request.getLocation())
+                .idealType(request.getIdealType())
+                .hobby(request.getHobby())
                 .orderId(orderId)
                 .amount(event.getAmount())
                 .build();

@@ -1,14 +1,12 @@
 package com.oceandate.backend.domain.matching.controller;
 
-import com.oceandate.backend.domain.matching.dto.OneToOneEventRequest;
-import com.oceandate.backend.domain.matching.dto.OneToOneEventResponse;
-import com.oceandate.backend.domain.matching.dto.OneToOneRequest;
-import com.oceandate.backend.domain.matching.dto.OneToOneResponse;
+import com.oceandate.backend.domain.matching.dto.*;
 import com.oceandate.backend.domain.matching.entity.OneToOne;
 import com.oceandate.backend.domain.matching.entity.OneToOneEvent;
 import com.oceandate.backend.domain.matching.enums.ApplicationStatus;
 import com.oceandate.backend.domain.matching.enums.EventStatus;
 import com.oceandate.backend.domain.matching.service.OneToOneEventService;
+import com.oceandate.backend.domain.matching.service.OneToOneMatchingService;
 import com.oceandate.backend.domain.matching.service.OneToOneService;
 import com.oceandate.backend.domain.user.entity.UserEntity;
 import com.oceandate.backend.domain.user.repository.UserRepository;
@@ -18,6 +16,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -30,6 +29,7 @@ public class OneToOneController {
 
     private final OneToOneService oneToOneService;
     private final OneToOneEventService oneToOneEventService;
+    private final OneToOneMatchingService matchingService;
     private final UserRepository userRepository;
 
     @Operation(summary = "일대일 소개팅 신청", description = "소개팅 신청 후 관리자 승인 필요, 바로 결제 X")
@@ -108,6 +108,14 @@ public class OneToOneController {
         return ResponseEntity.ok(response);
     }
 
+    @Operation(summary = "일대일 소개팅 매칭(관리자)")
+//    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping("/matching")
+    public ResponseEntity<String> createMatching(
+            @RequestBody MatchingCreateRequest request){
+        matchingService.createMatching(request);
+        return ResponseEntity.ok("매칭이 완료되었습니다.");
+    }
 }
 
 

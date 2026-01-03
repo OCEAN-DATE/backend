@@ -14,7 +14,8 @@ public class OneToOneResponse {
     private Long id;
     private String job;
     private String introduction;
-    private String location;
+    private String idealType;
+    private String hobby;
     private ApplicationStatus status;
     private BigDecimal amount;
     private LocalDateTime createdAt;
@@ -30,7 +31,8 @@ public class OneToOneResponse {
                 .id(oneToOne.getId())
                 .job(oneToOne.getJob())
                 .introduction(oneToOne.getIntroduction())
-                .location(oneToOne.getLocation())
+                .idealType(oneToOne.getIdealType())
+                .hobby(oneToOne.getHobby())
                 .status(oneToOne.getStatus())
                 .amount(oneToOne.getAmount())
                 .createdAt(oneToOne.getCreatedAt())
