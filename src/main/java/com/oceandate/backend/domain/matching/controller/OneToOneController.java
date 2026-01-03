@@ -53,11 +53,7 @@ public class OneToOneController {
     @GetMapping("/applications")
 //    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<OneToOneResponse>> getApplications(
-            Long userId,
             @RequestParam(required = false) ApplicationStatus status){
-
-        UserEntity user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
 
         List<OneToOneResponse> applications = oneToOneService.getApplications(status);
 

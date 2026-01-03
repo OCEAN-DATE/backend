@@ -42,7 +42,7 @@ public class OneToOneService {
             throw new CustomException(ErrorCode.EVENT_CLOSED);
         }
 
-        String orderId = "onetoone" + UUID.randomUUID().toString();
+        String orderId = "onetoone_" + UUID.randomUUID().toString();
 
         OneToOne application = OneToOne.builder()
                 .user(user)

@@ -29,7 +29,7 @@ public abstract class Matching {
     protected UserEntity user;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false,  length = 50)
     protected ApplicationStatus status;
 
     @Column(columnDefinition = "TEXT", nullable = false)
