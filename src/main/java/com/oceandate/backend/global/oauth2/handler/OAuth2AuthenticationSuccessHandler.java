@@ -36,8 +36,10 @@ public class OAuth2AuthenticationSuccessHandler implements AuthenticationSuccess
     private final JwtTokenProvider jwtTokenProvider;
     private final RefreshTokenRepository refreshTokenRepository;
 
-    private static final String COOKIE_NAME = "refresh_token";
+    private static final String REFRESH_COOKIE_NAME = "refresh_token";
+    private static final String ACCESS_COOKIE_NAME = "access_token";
     private static final int REFRESH_TOKEN_EXPIRE_TIME = 1000 * 60 * 60 * 24 * 7; // 7일
+    private static final int ACCESS_TOKEN_EXPIRE_TIME = 1000 * 60 * 60 * 3; // 3시간
 
     @Override
     public void onAuthenticationSuccess(
@@ -54,19 +56,16 @@ public class OAuth2AuthenticationSuccessHandler implements AuthenticationSuccess
         Member member = memberService.registerMember(accountContext.getSocialUserInfo());
         accountContext.updateMemberInfo(member);
 
-        // ⭐ 1. AccessToken 생성 추가
+        // 1. AccessToken 생성 및 쿠키 설정
         AuthToken accessToken = jwtTokenProvider.createToken(authentication, AuthTokenType.ACCESS);
-        log.info("✅ AccessToken 생성 완료: {}", accessToken.token().substring(0, 20) + "...");
+        cookieUtil.addCookie(response, ACCESS_COOKIE_NAME, accessToken.token(), ACCESS_TOKEN_EXPIRE_TIME);
+        log.info("✅ AccessToken 쿠키 설정 완료");
 
         // 2. Refresh Token 생성 및 쿠키 설정
         setRefreshTokenCookie(authentication, response);
 
-        // ⭐ 3. 프론트엔드로 리다이렉트 (AccessToken 포함)
-        String redirectUrl = UriComponentsBuilder
-                .fromUriString(frontendUrl + "/login/callback")
-                .queryParam("accessToken", accessToken.token())
-                .build()
-                .toUriString();
+        // 3. 프론트엔드로 리다이렉트 (토큰은 쿠키로 전달)
+        String redirectUrl = frontendUrl + "/login/callback";
 
         log.info("리다이렉트 URL: {}", redirectUrl);
         response.sendRedirect(redirectUrl);
@@ -82,6 +81,6 @@ public class OAuth2AuthenticationSuccessHandler implements AuthenticationSuccess
         refreshTokenRepository.save(RefreshToken.of(accountContext.getMemberId(), refreshToken.token()));
 
         // 쿠키에 담기
-        cookieUtil.addCookie(response, COOKIE_NAME, refreshToken.token(), REFRESH_TOKEN_EXPIRE_TIME);
+        cookieUtil.addCookie(response, REFRESH_COOKIE_NAME, refreshToken.token(), REFRESH_TOKEN_EXPIRE_TIME);
     }
 }
