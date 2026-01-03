@@ -86,6 +86,6 @@ jobs:
           username: ${{ secrets.EC2_USERNAME }}
           port: ${{ secrets.EC2_PORT }}
           script: |
-            cd /home/ubuntu/backend/build/libs
+            cd /home/ubuntu/meetup/build/libs
             sudo ps -ef | grep -v grep | grep "java -jar backend" | awk '{print $2}' | xargs -r kill -15
             sudo nohup java -jar backend-0.0.1-SNAPSHOT.jar --server.port=8080 >> ./meetup.log 2>&1 &
