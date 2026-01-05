@@ -80,11 +80,16 @@ jobs:
     steps:
       - name: Execute commands on EC2
         uses: appleboy/ssh-action@v1.0.3
+        env:
+          SPRING_DATASOURCE_URL: ${{ secrets.DB_HOST }}
+          SPRING_DATASOURCE_USERNAME: ${{ secrets.DB_USER }}
+          SPRING_DATASOURCE_PASSWORD: ${{ secrets.DB_PASSWORD }}
         with:
           host: ${{ secrets.EC2_HOST }}
           key: ${{ secrets.EC2_SSH_KEY }}
           username: ${{ secrets.EC2_USERNAME }}
           port: ${{ secrets.EC2_PORT }}
+          envs: SPRING_DATASOURCE_URL,SPRING_DATASOURCE_USERNAME,SPRING_DATASOURCE_PASSWORD
           script: |
             cd /home/ubuntu/meetup/build/libs
             sudo ps -ef | grep -v grep | grep "java -jar backend" | awk '{print $2}' | xargs -r kill -15
