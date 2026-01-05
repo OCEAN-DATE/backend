@@ -8,8 +8,8 @@ import com.oceandate.backend.domain.matching.enums.EventStatus;
 import com.oceandate.backend.domain.matching.service.OneToOneEventService;
 import com.oceandate.backend.domain.matching.service.OneToOneMatchingService;
 import com.oceandate.backend.domain.matching.service.OneToOneService;
-import com.oceandate.backend.domain.user.entity.UserEntity;
-import com.oceandate.backend.domain.user.repository.UserRepository;
+import com.oceandate.backend.domain.user.entity.Member;
+import com.oceandate.backend.domain.user.repository.MemberRepository;
 import com.oceandate.backend.global.exception.CustomException;
 import com.oceandate.backend.global.exception.constant.ErrorCode;
 import io.swagger.v3.oas.annotations.Operation;
@@ -30,7 +30,7 @@ public class OneToOneController {
     private final OneToOneService oneToOneService;
     private final OneToOneEventService oneToOneEventService;
     private final OneToOneMatchingService matchingService;
-    private final UserRepository userRepository;
+    private final MemberRepository memberRepository;
 
     @Operation(summary = "일대일 소개팅 신청", description = "소개팅 신청 후 관리자 승인 필요, 바로 결제 X")
     @PostMapping("/applications")
@@ -38,7 +38,7 @@ public class OneToOneController {
             @RequestBody OneToOneRequest dto,
             @RequestParam Long userId) {
 
-        UserEntity user = userRepository.findById(userId).
+        Member user = memberRepository.findById(userId).
                 orElseThrow(() -> new IllegalArgumentException("사용자가 존재하지 않습니다."));
 
         OneToOne application = oneToOneService.createApplication(
@@ -76,7 +76,7 @@ public class OneToOneController {
     public ResponseEntity<List<OneToOneResponse>> getMyApplications(
             @RequestParam Long userId
     ){
-        UserEntity user = userRepository.findById(userId)
+        Member user = memberRepository.findById(userId)
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
         List<OneToOneResponse> response = oneToOneService.getMyApplications(userId);

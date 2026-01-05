@@ -1,7 +1,6 @@
 package com.oceandate.backend.domain.matching.entity;
 
 import com.oceandate.backend.domain.matching.enums.VerificationStatus;
-import com.oceandate.backend.domain.user.entity.UserEntity;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;

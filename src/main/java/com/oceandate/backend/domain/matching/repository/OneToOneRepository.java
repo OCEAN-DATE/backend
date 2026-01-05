@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.Optional;
 
 public interface OneToOneRepository extends JpaRepository<OneToOne, Long> {
-    List<OneToOne> findByUserId(Long userId);
+    List<OneToOne> findByMemberId(Long userId);
     List<OneToOne> findByStatus(ApplicationStatus status);
     Optional<OneToOne> findByOrderId(String orderId);
 }

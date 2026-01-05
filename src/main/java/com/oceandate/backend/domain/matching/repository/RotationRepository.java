@@ -4,7 +4,7 @@ import com.oceandate.backend.domain.matching.entity.Rotation;
 import com.oceandate.backend.domain.matching.entity.RotationEvent;
 import com.oceandate.backend.domain.matching.enums.ApplicationStatus;
 import com.oceandate.backend.domain.matching.enums.VerificationStatus;
-import com.oceandate.backend.domain.user.entity.UserEntity;
+import com.oceandate.backend.domain.user.entity.Member;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -15,7 +15,7 @@ import java.util.List;
 import java.util.Optional;
 
 public interface RotationRepository extends JpaRepository<Rotation, Long> {
-    List<Rotation> findByUser(UserEntity user);
+    List<Rotation> findByMember(Member user);
 
     List<Rotation> findByEvent(RotationEvent event);
 
@@ -28,12 +28,7 @@ public interface RotationRepository extends JpaRepository<Rotation, Long> {
             RotationEvent event,
             VerificationStatus status);
 
-    boolean existsByUserAndEvent(UserEntity user, RotationEvent event);
-
-    @Query("SELECT a FROM Rotation a WHERE a.event.id = :eventId AND a.user.email = :email")
-    Optional<Rotation> findByEventIdAndUserEmail(
-             Long eventId,
-             String email);
+    boolean existsByMemberAndEvent(Member user, RotationEvent event);
 
     List<Rotation> findByEventAndStatus(RotationEvent event, ApplicationStatus status);
 

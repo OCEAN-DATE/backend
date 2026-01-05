@@ -8,8 +8,8 @@ import com.oceandate.backend.domain.matching.enums.ApplicationStatus;
 import com.oceandate.backend.domain.matching.enums.EventStatus;
 import com.oceandate.backend.domain.matching.repository.OneToOneEventRepository;
 import com.oceandate.backend.domain.matching.repository.OneToOneRepository;
-import com.oceandate.backend.domain.user.entity.UserEntity;
-import com.oceandate.backend.domain.user.repository.UserRepository;
+import com.oceandate.backend.domain.user.entity.Member;
+import com.oceandate.backend.domain.user.repository.MemberRepository;
 import com.oceandate.backend.global.exception.CustomException;
 import com.oceandate.backend.global.exception.constant.ErrorCode;
 import jakarta.transaction.Transactional;
@@ -27,12 +27,12 @@ public class OneToOneService {
 
     private final OneToOneRepository oneToOneRepository;
     private final OneToOneEventRepository oneToOneEventRepository;
-    private final UserRepository userRepository;
+    private final MemberRepository memberRepository;
 
     @Transactional
     public OneToOne createApplication(Long userId, OneToOneRequest request){
 
-        UserEntity user = userRepository.findById(userId)
+        Member user = memberRepository.findById(userId)
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
         OneToOneEvent event = oneToOneEventRepository.findById(request.getEventId())
@@ -45,7 +45,7 @@ public class OneToOneService {
         String orderId = "onetoone_" + UUID.randomUUID().toString();
 
         OneToOne application = OneToOne.builder()
-                .user(user)
+                .member(user)
                 .event(event)
                 .preferredDates(request.getPreferredDates())
                 .job(request.getJob())
@@ -88,7 +88,7 @@ public class OneToOneService {
     }
 
     public List<OneToOneResponse> getMyApplications(Long userId) {
-        List<OneToOne> applications = oneToOneRepository.findByUserId(userId);
+        List<OneToOne> applications = oneToOneRepository.findByMemberId(userId);
 
         return applications.stream()
                 .map(OneToOneResponse::from)

@@ -1,7 +1,7 @@
 package com.oceandate.backend.domain.matching.entity;
 
 import com.oceandate.backend.domain.matching.enums.ApplicationStatus;
-import com.oceandate.backend.domain.user.entity.UserEntity;
+import com.oceandate.backend.domain.user.entity.Member;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -26,7 +26,7 @@ public abstract class Matching {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
-    protected UserEntity user;
+    protected Member member;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false,  length = 50)

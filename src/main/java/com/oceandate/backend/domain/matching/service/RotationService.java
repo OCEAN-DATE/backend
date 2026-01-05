@@ -9,9 +9,9 @@ import com.oceandate.backend.domain.matching.enums.EventStatus;
 import com.oceandate.backend.domain.matching.enums.VerificationStatus;
 import com.oceandate.backend.domain.matching.repository.RotationEventRepository;
 import com.oceandate.backend.domain.matching.repository.RotationRepository;
-import com.oceandate.backend.domain.user.entity.UserEntity;
-import com.oceandate.backend.domain.user.enums.Gender;
-import com.oceandate.backend.domain.user.repository.UserRepository;
+import com.oceandate.backend.domain.user.entity.Member;
+import com.oceandate.backend.domain.user.entity.Sex;
+import com.oceandate.backend.domain.user.repository.MemberRepository;
 import com.oceandate.backend.global.exception.CustomException;
 import com.oceandate.backend.global.exception.constant.ErrorCode;
 import jakarta.transaction.Transactional;
@@ -28,14 +28,14 @@ public class RotationService {
 
     private final RotationRepository rotationRepository;
     private final RotationEventRepository rotationEventRepository;
-    private final UserRepository userRepository;
+    private final MemberRepository memberRepository;
 
     @Transactional
     public RotationResponse createApplication(
             Long userId,
             RotationRequest request) {
 
-        UserEntity user = userRepository.findById(userId)
+        Member user = memberRepository.findById(userId)
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
         RotationEvent event = rotationEventRepository.findByIdWithLock(request.getEventId())
@@ -45,22 +45,22 @@ public class RotationService {
             throw new CustomException(ErrorCode.EVENT_CLOSED);
         }
 
-        boolean alreadyApplied = rotationRepository.existsByUserAndEvent(user, event);
+        boolean alreadyApplied = rotationRepository.existsByMemberAndEvent(user, event);
         if (alreadyApplied) {
             throw new CustomException(ErrorCode.DUPLICATE_APPLICATION);
         }
 
-        if (Gender.MALE.equals(user.getGender()) && !event.canApproveMale()) {
+        if (Sex.MAN.equals(user.getSex()) && !event.canApproveMale()) {
             throw new CustomException(ErrorCode.MALE_CAPACITY_FULL);
         }
-        if (Gender.FEMALE.equals(user.getGender()) && !event.canApproveFemale()) {
+        if (Sex.WOMAN.equals(user.getSex()) && !event.canApproveFemale()) {
             throw new CustomException(ErrorCode.FEMALE_CAPACITY_FULL);
         }
 
         String orderId = "rotation_" + UUID.randomUUID().toString();
 
         Rotation application = Rotation.builder()
-                .user(user)
+                .member(user)
                 .event(event)
                 .job(request.getJob())
                 .introduction(request.getIntroduction())

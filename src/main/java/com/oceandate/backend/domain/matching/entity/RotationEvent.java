@@ -1,7 +1,7 @@
 package com.oceandate.backend.domain.matching.entity;
 
 import com.oceandate.backend.domain.matching.enums.EventStatus;
-import com.oceandate.backend.domain.user.enums.Gender;
+import com.oceandate.backend.domain.user.entity.Sex;
 import com.oceandate.backend.global.exception.CustomException;
 import com.oceandate.backend.global.exception.constant.ErrorCode;
 import jakarta.persistence.*;
@@ -96,13 +96,13 @@ public class RotationEvent {
         return approvedMaleCount >= maleCapacity && approvedFemaleCount >= femaleCapacity;
     }
 
-    public void incrementApprovedCount(Gender gender) {
-        if (Gender.MALE.equals(gender)) {
+    public void incrementApprovedCount(Sex sex) {
+        if (Sex.MAN.equals(sex)) {
             if (!canApproveMale()) {
                 throw new CustomException(ErrorCode.MALE_CAPACITY_FULL);
             }
             this.approvedMaleCount++;
-        } else if (Gender.FEMALE.equals(gender)) {
+        } else if (Sex.WOMAN.equals(sex)) {
             if (!canApproveFemale()) {
                 throw new CustomException(ErrorCode.FEMALE_CAPACITY_FULL);
             }

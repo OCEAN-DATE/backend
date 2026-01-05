@@ -22,9 +22,8 @@ public class OneToOneResponse {
     private String orderId;
 
     private Long userId;
-    private String username;
+    private String name;
     private String email;
-    private String nickname;
 
     public static OneToOneResponse from(OneToOne oneToOne) {
         return OneToOneResponse.builder()
@@ -37,10 +36,9 @@ public class OneToOneResponse {
                 .amount(oneToOne.getAmount())
                 .createdAt(oneToOne.getCreatedAt())
                 .orderId(oneToOne.getOrderId())
-                .userId(oneToOne.getUser().getId())
-                .username(oneToOne.getUser().getUsername())
-                .email(oneToOne.getUser().getEmail())
-                .nickname(oneToOne.getUser().getNickname())
+                .userId(oneToOne.getMember().getId())
+                .name(oneToOne.getMember().getName())
+                .email(oneToOne.getMember().getEmail())
                 .build();
     }
 }

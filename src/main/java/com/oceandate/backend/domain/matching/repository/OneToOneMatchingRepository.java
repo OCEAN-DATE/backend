@@ -11,9 +11,9 @@ public interface OneToOneMatchingRepository extends JpaRepository<OneToOneMatchi
     @Query("SELECT m FROM OneToOneMatching m " +
             "JOIN FETCH m.event " +
             "JOIN FETCH m.maleApplication ma " +
-            "JOIN FETCH ma.user " +
+            "JOIN FETCH ma.member " +
             "JOIN FETCH m.femaleApplication fa " +
-            "JOIN FETCH fa.user " +
+            "JOIN FETCH fa.member " +
             "WHERE m.event.id = :eventId " +
             "ORDER BY m.matchedAt DESC")
     List<OneToOneMatching> findAllByEventId(Long eventId);

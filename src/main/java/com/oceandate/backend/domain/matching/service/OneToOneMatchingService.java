@@ -8,7 +8,7 @@ import com.oceandate.backend.domain.matching.enums.ApplicationStatus;
 import com.oceandate.backend.domain.matching.repository.OneToOneEventRepository;
 import com.oceandate.backend.domain.matching.repository.OneToOneMatchingRepository;
 import com.oceandate.backend.domain.matching.repository.OneToOneRepository;
-import com.oceandate.backend.domain.user.enums.Gender;
+import com.oceandate.backend.domain.user.entity.Sex;
 import com.oceandate.backend.global.exception.CustomException;
 import com.oceandate.backend.global.exception.constant.ErrorCode;
 import jakarta.transaction.Transactional;
@@ -35,11 +35,11 @@ public class OneToOneMatchingService {
         OneToOne femaleApplication = oneToOneRepository.findById(request.getFemaleApplicationId())
                 .orElseThrow(() -> new CustomException(ErrorCode.APPLICATION_NOT_FOUND));
 
-        if(maleApplication.getUser().getGender() != Gender.MALE){
+        if(maleApplication.getMember().getSex() != Sex.MAN){
             throw new CustomException(ErrorCode.GENDER_MISMATCH);
         }
 
-        if(femaleApplication.getUser().getGender() != Gender.FEMALE){
+        if(femaleApplication.getMember().getSex() != Sex.WOMAN){
             throw new CustomException(ErrorCode.GENDER_MISMATCH);
         }
 
