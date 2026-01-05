@@ -1,5 +1,6 @@
 package com.oceandate.backend.domain.matching.dto;
 
+import com.fasterxml.jackson.databind.deser.DataFormatReaders;
 import com.oceandate.backend.domain.matching.entity.OneToOne;
 import com.oceandate.backend.domain.matching.enums.ApplicationStatus;
 import lombok.Builder;
@@ -25,6 +26,8 @@ public class OneToOneResponse {
     private String name;
     private String email;
 
+    private MatchedUserInfo matchedUserInfo;
+
     public static OneToOneResponse from(OneToOne oneToOne) {
         return OneToOneResponse.builder()
                 .id(oneToOne.getId())
@@ -39,6 +42,24 @@ public class OneToOneResponse {
                 .userId(oneToOne.getMember().getId())
                 .name(oneToOne.getMember().getName())
                 .email(oneToOne.getMember().getEmail())
+                .build();
+    }
+
+    public static OneToOneResponse from(OneToOne oneToOne, MatchedUserInfo matchedUser) {
+        return OneToOneResponse.builder()
+                .id(oneToOne.getId())
+                .job(oneToOne.getJob())
+                .introduction(oneToOne.getIntroduction())
+                .idealType(oneToOne.getIdealType())
+                .hobby(oneToOne.getHobby())
+                .status(oneToOne.getStatus())
+                .amount(oneToOne.getAmount())
+                .createdAt(oneToOne.getCreatedAt())
+                .orderId(oneToOne.getOrderId())
+                .userId(oneToOne.getMember().getId())
+                .name(oneToOne.getMember().getName())
+                .email(oneToOne.getMember().getEmail())
+                .matchedUserInfo(matchedUser)
                 .build();
     }
 }

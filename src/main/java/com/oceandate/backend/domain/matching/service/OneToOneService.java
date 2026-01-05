@@ -1,5 +1,6 @@
 package com.oceandate.backend.domain.matching.service;
 
+import com.oceandate.backend.domain.matching.dto.MatchedUserInfo;
 import com.oceandate.backend.domain.matching.dto.OneToOneRequest;
 import com.oceandate.backend.domain.matching.dto.OneToOneResponse;
 import com.oceandate.backend.domain.matching.entity.OneToOne;
@@ -7,6 +8,7 @@ import com.oceandate.backend.domain.matching.entity.OneToOneEvent;
 import com.oceandate.backend.domain.matching.enums.ApplicationStatus;
 import com.oceandate.backend.domain.matching.enums.EventStatus;
 import com.oceandate.backend.domain.matching.repository.OneToOneEventRepository;
+import com.oceandate.backend.domain.matching.repository.OneToOneMatchingRepository;
 import com.oceandate.backend.domain.matching.repository.OneToOneRepository;
 import com.oceandate.backend.domain.user.entity.Member;
 import com.oceandate.backend.domain.user.repository.MemberRepository;
@@ -27,6 +29,7 @@ public class OneToOneService {
 
     private final OneToOneRepository oneToOneRepository;
     private final OneToOneEventRepository oneToOneEventRepository;
+    private final OneToOneMatchingRepository matchingRepository;
     private final MemberRepository memberRepository;
 
     @Transactional
@@ -65,18 +68,31 @@ public class OneToOneService {
 
         if(status == null){
             applications = oneToOneRepository.findAll();
-            return applications.stream()
-                    .map(OneToOneResponse::from)
-                    .collect(Collectors.toList());
-
         }
         else{
             applications = oneToOneRepository.findByStatus(status);
         }
 
         return applications.stream()
-                .map(OneToOneResponse::from)
+                .map(app -> {
+                    MatchedUserInfo matchedPartner = null;
+                    if (app.getStatus() == ApplicationStatus.MATCHED) {
+                        matchedPartner = getMatchedPartner(app.getId());
+                    }
+                    return OneToOneResponse.from(app, matchedPartner);
+                })
                 .collect(Collectors.toList());
+    }
+
+    private MatchedUserInfo getMatchedPartner(Long applicationId) {
+        return matchingRepository.findByApplicationId(applicationId)
+                .map(matching -> {
+                    OneToOne partner = matching.getMaleApplication().getId().equals(applicationId)
+                            ? matching.getFemaleApplication()
+                            : matching.getMaleApplication();
+                    return MatchedUserInfo.from(partner);
+                })
+                .orElse(null);
     }
 
     @Transactional

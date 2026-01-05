@@ -1,6 +1,5 @@
 package com.oceandate.backend.domain.matching.dto;
 
-import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
 @Getter

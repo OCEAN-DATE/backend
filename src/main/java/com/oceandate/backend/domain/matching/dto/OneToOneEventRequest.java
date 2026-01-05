@@ -3,7 +3,6 @@ package com.oceandate.backend.domain.matching.dto;
 import lombok.*;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 
 @Getter
 @Setter

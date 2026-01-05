@@ -2,7 +2,6 @@ package com.oceandate.backend.domain.matching.service;
 
 import com.oceandate.backend.domain.matching.dto.OneToOneEventRequest;
 import com.oceandate.backend.domain.matching.dto.OneToOneEventResponse;
-import com.oceandate.backend.domain.matching.dto.OneToOneRequest;
 import com.oceandate.backend.domain.matching.entity.OneToOneEvent;
 import com.oceandate.backend.domain.matching.enums.EventStatus;
 import com.oceandate.backend.domain.matching.repository.OneToOneEventRepository;
