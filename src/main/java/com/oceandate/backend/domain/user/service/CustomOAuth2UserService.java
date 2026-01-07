@@ -1,10 +1,13 @@
 package com.oceandate.backend.domain.user.service;
 
+import com.oceandate.backend.global.config.AdminProps;
 import com.oceandate.backend.global.jwt.AccountContext;
 import com.oceandate.backend.global.oauth2.userinfo.KakaoUserInfo;
 import com.oceandate.backend.global.oauth2.userinfo.SocialUserInfo;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
@@ -13,6 +16,8 @@ import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 @Slf4j
@@ -20,6 +25,8 @@ import java.util.Map;
 @Transactional
 @RequiredArgsConstructor
 public class CustomOAuth2UserService extends DefaultOAuth2UserService {
+
+    private final AdminProps props;
 
     @Override
     public OAuth2User loadUser(OAuth2UserRequest userRequest) throws OAuth2AuthenticationException {
@@ -42,11 +49,16 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
             log.info("   Name: {}", socialUserInfo.getName());
             log.info("   Provider ID: {}", socialUserInfo.getProviderId());
 
-            // 3. AccountContext 생성
+            // 3. 권한 결정 (관리자 여부 확인)
+            List<SimpleGrantedAuthority> roles = determineRoles(socialUserInfo.getEmail());
+            log.info("✅ 권한 부여 완료: {}", roles);
+
+            // 4. AccountContext 생성
             AccountContext accountContext = AccountContext.fromOAuth2User(
                     oauth2User,
                     socialUserInfo,
-                    registrationId
+                    registrationId,
+                    roles
             );
 
             log.info("✅ AccountContext 생성 완료");
@@ -125,5 +137,21 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
                     e
             );
         }
+    }
+
+    /**
+     * 이메일을 기반으로 사용자 권한 결정
+     * 관리자 이메일 목록에 포함되면 ROLE_ADMIN 추가
+     */
+    private List<SimpleGrantedAuthority> determineRoles(String email) {
+        List<SimpleGrantedAuthority> roles = new ArrayList<>();
+        roles.add(new SimpleGrantedAuthority("ROLE_USER"));
+
+        if (props.getEmails() != null && props.getEmails().contains(email)) {
+            roles.add(new SimpleGrantedAuthority("ROLE_ADMIN"));
+            log.info("🔐 관리자 권한 부여: {}", email);
+        }
+
+        return roles;
     }
 }

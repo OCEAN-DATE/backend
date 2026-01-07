@@ -68,6 +68,16 @@ public class AccountContext implements UserDetails, OidcUser, OAuth2User {
             SocialUserInfo socialUserInfo,
             String registrationId
     ) {
+        return fromOAuth2User(oauth2User, socialUserInfo, registrationId, List.of(new SimpleGrantedAuthority("ROLE_USER")));
+    }
+
+    // 일반 OAuth2 로그인용 (권한 지정 가능)
+    public static AccountContext fromOAuth2User(
+            OAuth2User oauth2User,
+            SocialUserInfo socialUserInfo,
+            String registrationId,
+            List<SimpleGrantedAuthority> roles
+    ) {
         if (oauth2User == null) {
             throw new IllegalArgumentException("OAuth2User는 null일 수 없습니다.");
         }
@@ -85,7 +95,7 @@ public class AccountContext implements UserDetails, OidcUser, OAuth2User {
                 .email(socialUserInfo.getEmail())
                 .password(socialUserInfo.getEmail())
                 .registrationId(registrationId)
-                .roles(List.of(new SimpleGrantedAuthority("ROLE_USER")))
+                .roles(roles)
                 // OIDC 필드는 null
                 .idToken(null)
                 .oidcUserInfo(null)

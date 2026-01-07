@@ -1,10 +1,8 @@
 package com.oceandate.backend.global.config;
 
-import static org.springframework.security.config.Customizer.withDefaults;
 import static org.springframework.security.config.http.SessionCreationPolicy.STATELESS;
 
 import com.oceandate.backend.domain.user.service.CustomOAuth2UserService;
-import com.oceandate.backend.domain.user.service.CustomOidcUserService;
 import com.oceandate.backend.global.oauth2.handler.OAuth2AuthenticationFailureHandler;
 import com.oceandate.backend.global.oauth2.handler.OAuth2AuthenticationSuccessHandler;
 import lombok.RequiredArgsConstructor;
