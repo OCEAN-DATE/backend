@@ -16,6 +16,7 @@ import com.oceandate.backend.global.exception.CustomException;
 import com.oceandate.backend.global.exception.constant.ErrorCode;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -33,7 +34,7 @@ public class OneToOneService {
     private final MemberRepository memberRepository;
 
     @Transactional
-    public OneToOne createApplication(Long userId, OneToOneRequest request){
+    public void createApplication(Long userId, OneToOneRequest request){
 
         Member user = memberRepository.findById(userId)
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
@@ -43,6 +44,10 @@ public class OneToOneService {
 
         if(event.getStatus() != EventStatus.OPEN){
             throw new CustomException(ErrorCode.EVENT_CLOSED);
+        }
+
+        if(oneToOneRepository.existsByMemberIdAndEventId(userId, event.getId())){
+            throw new CustomException(ErrorCode.DUPLICATE_APPLICATION);
         }
 
         String orderId = "onetoone_" + UUID.randomUUID().toString();
@@ -60,7 +65,11 @@ public class OneToOneService {
                 .amount(event.getAmount())
                 .build();
 
-        return oneToOneRepository.save(application);
+        try {
+            oneToOneRepository.save(application);
+        } catch (DataIntegrityViolationException e) {
+            throw new CustomException(ErrorCode.DUPLICATE_APPLICATION);
+        }
     }
 
     public List<OneToOneResponse> getApplications(ApplicationStatus status) {
@@ -109,5 +118,12 @@ public class OneToOneService {
         return applications.stream()
                 .map(OneToOneResponse::from)
                 .collect(Collectors.toList());
+    }
+
+    public void deleteEvent(Long eventId) {
+        OneToOneEvent event = oneToOneEventRepository.findById(eventId)
+                .orElseThrow(() -> new CustomException(ErrorCode.EVENT_NOT_FOUND));
+
+        oneToOneEventRepository.deleteById(event.getId());
     }
 }

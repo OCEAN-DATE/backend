@@ -24,14 +24,14 @@ public enum ErrorCode {
     ALREADY_MATCHED("MATCHING_409", "이미 매칭된 신청서입니다."),
     INVALID_MATCHING_STATUS("MATCHING_400", "매칭 가능한 상태가 아닙니다."),
 
-    // 로테이션 이벤트
+    // 이벤트
     EVENT_NOT_FOUND("EVENT_404", "이벤트를 찾을 수 없습니다."),
     EVENT_CLOSED("EVENT_400", "모집이 종료된 이벤트입니다."),
     MALE_CAPACITY_FULL("EVENT_400", "남성 정원이 마감되었습니다."),
     FEMALE_CAPACITY_FULL("EVENT_400", "여성 정원이 마감되었습니다."),
     EVENT_FULL("EVENT_400", "정원이 마감되었습니다."),
 
-    // 로테이션 신청
+    // 신청
     APPLICATION_NOT_FOUND("APPLICATION_404", "신청을 찾을 수 없습니다."),
     DUPLICATE_APPLICATION("APPLICATION_409", "이미 신청한 이벤트입니다."),
     INVALID_APPLICATION_STATUS("APPLICATION_400", "잘못된 신청 상태입니다."),
