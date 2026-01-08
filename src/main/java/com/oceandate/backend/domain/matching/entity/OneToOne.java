@@ -8,8 +8,15 @@ import java.time.LocalDate;
 import java.util.List;
 
 @Entity
+@Table(name = "one_to_one",
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        name = "uk_member_oneto_one_event",
+                        columnNames = {"user_id", "event_id"}
+                )
+        }
+)
 @Getter
-@Table(name = "one_to_one")
 @NoArgsConstructor
 @AllArgsConstructor
 @SuperBuilder

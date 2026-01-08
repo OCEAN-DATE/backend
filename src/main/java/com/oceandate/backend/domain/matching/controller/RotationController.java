@@ -22,7 +22,7 @@ public class RotationController {
     private final RotationService rotationService;
     private final RotationEventService rotationEventService;
 
-    @Operation(summary = "로테이션 소개팅 신청", description = "신청 시 바로 결제")
+    @Operation(summary = "로테이션 소개팅 신청")
     @PostMapping("/applications")
     public ResponseEntity<RotationResponse> createApplication(
             @RequestParam Long userId,

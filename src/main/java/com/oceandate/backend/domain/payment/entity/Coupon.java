@@ -6,7 +6,6 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.math.BigDecimal;
 
 @Entity
 @Data
@@ -29,11 +28,11 @@ public class Coupon {
     private DiscountType discountType;
 
     @Column(nullable = false)
-    private BigDecimal discountValue;
+    private Integer discountValue;
 
     @Column
-    private BigDecimal minOrderAmount;
+    private Integer minOrderAmount;
 
     @Column(name = "discount_amount", nullable = false)
-    private BigDecimal discountAmount;
+    private Integer discountAmount;
 }

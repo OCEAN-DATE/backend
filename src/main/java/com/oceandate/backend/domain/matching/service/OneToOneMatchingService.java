@@ -29,10 +29,10 @@ public class OneToOneMatchingService {
         OneToOneEvent event = eventRepository.findById(request.getEventId())
                 .orElseThrow(() -> new CustomException(ErrorCode.EVENT_NOT_FOUND));
 
-        OneToOne maleApplication = oneToOneRepository.findById(request.getMaleApplicationId())
+        OneToOne maleApplication = oneToOneRepository.findByIdAndEventId(request.getMaleApplicationId(), event.getId())
                 .orElseThrow(() -> new CustomException(ErrorCode.APPLICATION_NOT_FOUND));
 
-        OneToOne femaleApplication = oneToOneRepository.findById(request.getFemaleApplicationId())
+        OneToOne femaleApplication = oneToOneRepository.findByIdAndEventId(request.getFemaleApplicationId(), event.getId())
                 .orElseThrow(() -> new CustomException(ErrorCode.APPLICATION_NOT_FOUND));
 
         if(maleApplication.getMember().getSex() != Sex.MAN){

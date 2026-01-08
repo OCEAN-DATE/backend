@@ -8,7 +8,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
-import java.math.BigDecimal;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -32,7 +31,7 @@ public class TossPaymentClient {
     public HttpResponse<String> requestConfirm(PaymentConfirmRequest confirmPaymentRequest)
             throws IOException, InterruptedException {
         String tossOrderId = confirmPaymentRequest.getOrderId();
-        BigDecimal amount = confirmPaymentRequest.getAmount();
+        Integer amount = confirmPaymentRequest.getAmount();
         String tossPaymentKey = confirmPaymentRequest.getPaymentKey();
 
         JsonNode requestObj = objectMapper.createObjectNode()

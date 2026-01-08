@@ -6,7 +6,7 @@ import lombok.Getter;
 
 @Getter
 @Builder
-public class MatchedUserInfo {
+public class UserInfo {
     private Long userId;
     private String name;
     private String email;
@@ -15,12 +15,12 @@ public class MatchedUserInfo {
     private String idealType;
     private String hobby;
 
-    public static MatchedUserInfo from(OneToOne oneToOne) {
+    public static UserInfo from(OneToOne oneToOne) {
         if(oneToOne == null){
             return null;
         }
 
-        return MatchedUserInfo.builder()
+        return UserInfo.builder()
                 .userId(oneToOne.getMember().getId())
                 .name(oneToOne.getMember().getName())
                 .email(oneToOne.getMember().getEmail())

@@ -10,7 +10,6 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.SuperBuilder;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @MappedSuperclass
@@ -45,10 +44,13 @@ public abstract class Matching {
     private String paymentKey;
 
     @Column
-    private BigDecimal amount;
+    private Integer amount;
 
     @Column(nullable = false, updatable = false)
     protected LocalDateTime createdAt;
+
+    @Column
+    private LocalDateTime approvedAt;
 
     @Column(nullable = false)
     protected LocalDateTime updatedAt;
