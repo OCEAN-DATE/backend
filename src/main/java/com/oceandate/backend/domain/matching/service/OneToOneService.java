@@ -1,8 +1,8 @@
 package com.oceandate.backend.domain.matching.service;
 
-import com.oceandate.backend.domain.matching.dto.MatchedUserInfo;
-import com.oceandate.backend.domain.matching.dto.OneToOneRequest;
 import com.oceandate.backend.domain.matching.dto.OneToOneResponse;
+import com.oceandate.backend.domain.matching.dto.UserInfo;
+import com.oceandate.backend.domain.matching.dto.OneToOneRequest;
 import com.oceandate.backend.domain.matching.entity.OneToOne;
 import com.oceandate.backend.domain.matching.entity.OneToOneEvent;
 import com.oceandate.backend.domain.matching.enums.ApplicationStatus;
@@ -19,7 +19,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -83,23 +85,31 @@ public class OneToOneService {
         }
 
         return applications.stream()
-                .map(app -> {
-                    MatchedUserInfo matchedPartner = null;
-                    if (app.getStatus() == ApplicationStatus.MATCHED) {
-                        matchedPartner = getMatchedPartner(app.getId());
-                    }
-                    return OneToOneResponse.from(app, matchedPartner);
-                })
+                .map(OneToOneResponse::from)
                 .collect(Collectors.toList());
     }
 
-    private MatchedUserInfo getMatchedPartner(Long applicationId) {
+    public OneToOneResponse getMyApplicationDetail(Long userId, Long applicationId){
+        OneToOne application = oneToOneRepository.findById(applicationId)
+                .orElseThrow(() -> new CustomException(ErrorCode.APPLICATION_NOT_FOUND));
+
+        return OneToOneResponse.fromDetail(application, UserInfo.from(application));
+    }
+
+    public OneToOneResponse getApplicationDetail(Long applicationId){
+        OneToOne application = oneToOneRepository.findById(applicationId)
+                .orElseThrow(() -> new CustomException(ErrorCode.APPLICATION_NOT_FOUND));
+
+        return OneToOneResponse.fromMatched(application, UserInfo.from(application), getMatchedPartner(applicationId));
+    }
+
+    private UserInfo getMatchedPartner(Long applicationId) {
         return matchingRepository.findByApplicationId(applicationId)
                 .map(matching -> {
                     OneToOne partner = matching.getMaleApplication().getId().equals(applicationId)
                             ? matching.getFemaleApplication()
                             : matching.getMaleApplication();
-                    return MatchedUserInfo.from(partner);
+                    return UserInfo.from(partner);
                 })
                 .orElse(null);
     }
@@ -109,6 +119,9 @@ public class OneToOneService {
         OneToOne application = oneToOneRepository.findById(id)
                 .orElseThrow((() -> new IllegalArgumentException("신청 내역을 찾을 수 없습니다.")));
 
+        if(status == ApplicationStatus.APPROVED){
+            application.setApprovedAt(LocalDateTime.now());
+        }
         application.setStatus(status);
     }
 

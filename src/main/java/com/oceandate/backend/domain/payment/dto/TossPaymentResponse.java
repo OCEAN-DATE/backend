@@ -6,7 +6,6 @@ import com.oceandate.backend.domain.payment.enums.PaymentStatus;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -25,8 +24,8 @@ public class TossPaymentResponse {
     @JsonProperty("method")
     private PaymentMethod method;
 
-    private BigDecimal totalAmount;
-    private BigDecimal balanceAmount;
+    private Integer totalAmount;
+    private Integer balanceAmount;
 
     @JsonProperty("status")
     private PaymentStatus status;
@@ -37,11 +36,11 @@ public class TossPaymentResponse {
     private Boolean useEscrow;
     private String lastTransactionKey;
 
-    private BigDecimal suppliedAmount;
-    private BigDecimal vat;
+    private Integer suppliedAmount;
+    private Integer vat;
 
     private Boolean cultureExpense;
-    private BigDecimal taxFreeAmount;
+    private Integer taxFreeAmount;
     private Integer taxExemptionAmount;
 
     private List<Cancel> cancels;
@@ -66,14 +65,14 @@ public class TossPaymentResponse {
     @Getter
     @NoArgsConstructor
     public static class Cancel {
-        private BigDecimal cancelAmount;
+        private Integer cancelAmount;
         private String cancelReason;
-        private BigDecimal taxFreeAmount;
+        private Integer taxFreeAmount;
         private Integer taxExemptionAmount;
-        private BigDecimal refundableAmount;
-        private BigDecimal cardDiscountAmount;
-        private BigDecimal transferDiscountAmount;
-        private BigDecimal easyPayDiscountAmount;
+        private Integer refundableAmount;
+        private Integer cardDiscountAmount;
+        private Integer transferDiscountAmount;
+        private Integer easyPayDiscountAmount;
         private LocalDateTime canceledAt;
         private String transactionKey;
         private String receiptKey;
@@ -84,7 +83,7 @@ public class TossPaymentResponse {
     @Getter
     @NoArgsConstructor
     public static class Card {
-        private BigDecimal amount;
+        private Integer amount;
         private String issuerCode;
         private String acquirerCode;
         private String number;
@@ -148,8 +147,8 @@ public class TossPaymentResponse {
     @NoArgsConstructor
     public static class EasyPay {
         private String provider;
-        private BigDecimal amount;
-        private BigDecimal discountAmount;
+        private Integer amount;
+        private Integer discountAmount;
     }
 
     @Getter
@@ -171,8 +170,8 @@ public class TossPaymentResponse {
         private String receiptKey;
         private String issueNumber;
         private String receiptUrl;
-        private BigDecimal amount;
-        private BigDecimal taxFreeAmount;
+        private Integer amount;
+        private Integer taxFreeAmount;
     }
 
     @Getter

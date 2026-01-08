@@ -1,7 +1,6 @@
 package com.oceandate.backend.domain.matching.dto;
 import lombok.*;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Getter
@@ -17,7 +16,7 @@ public class RotationEventResponse {
     private Integer femaleCapacity;
     private String ageRange;
     private String location;
-    private BigDecimal amount;
+    private Integer amount;
     private String description;
 }
 

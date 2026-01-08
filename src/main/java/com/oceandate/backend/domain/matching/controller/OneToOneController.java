@@ -1,7 +1,6 @@
 package com.oceandate.backend.domain.matching.controller;
 
 import com.oceandate.backend.domain.matching.dto.*;
-import com.oceandate.backend.domain.matching.entity.OneToOne;
 import com.oceandate.backend.domain.matching.entity.OneToOneEvent;
 import com.oceandate.backend.domain.matching.enums.ApplicationStatus;
 import com.oceandate.backend.domain.matching.enums.EventStatus;
@@ -16,7 +15,6 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -57,6 +55,16 @@ public class OneToOneController {
         return ResponseEntity.ok(applications);
     }
 
+    @Operation(summary = "일대일 소개팅 신청 상세 조회")
+    @GetMapping("/applications/{applicationId}")
+//    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<OneToOneResponse> getApplicationDetail(
+            @PathVariable Long applicationId
+    ){
+        OneToOneResponse application = oneToOneService.getApplicationDetail(applicationId);
+        return ResponseEntity.ok(application);
+    }
+
     @Operation(summary = "일대일 소개팅 신청 상태 변경(관리자)")
     @PatchMapping("/application/{id}/status")
 //    @PreAuthorize("hasRole('ADMIN')")
@@ -68,7 +76,7 @@ public class OneToOneController {
         return ResponseEntity.ok().build();
     }
 
-    @Operation(summary = "내 일대일 소개팅 신청 내역 조회", description = "조회 시 status가 PAYMENT_PENDING이면 결제하기 버튼 활성화")
+    @Operation(summary = "내 일대일 소개팅 신청 목록 조회", description = "조회 시 status가 PAYMENT_PENDING이면 결제하기 버튼 활성화")
     @GetMapping("/my")
     public ResponseEntity<List<OneToOneResponse>> getMyApplications(
             @RequestParam Long userId
@@ -77,6 +85,19 @@ public class OneToOneController {
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
         List<OneToOneResponse> response = oneToOneService.getMyApplications(userId);
+
+        return ResponseEntity.ok(response);
+    }
+
+    @Operation(summary = "내 일대일 소개팅 신청 상세 조회")
+    @GetMapping("/my/{applicationId}")
+    public ResponseEntity<OneToOneResponse> getMyApplications(
+            @RequestParam Long userId, @PathVariable Long applicationId
+    ){
+        Member user = memberRepository.findById(userId)
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
+
+        OneToOneResponse response = oneToOneService.getMyApplicationDetail(userId, applicationId);
 
         return ResponseEntity.ok(response);
     }

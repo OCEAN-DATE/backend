@@ -4,7 +4,6 @@ import com.oceandate.backend.domain.matching.enums.EventStatus;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -28,7 +27,7 @@ public class OneToOneEvent {
     private String location;
 
     @Column(nullable = false)
-    private BigDecimal amount;  // 참가비
+    private Integer amount;  // 참가비
 
     @Column(columnDefinition = "TEXT")
     private String description;

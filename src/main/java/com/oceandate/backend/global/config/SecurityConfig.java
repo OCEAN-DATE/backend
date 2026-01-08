@@ -60,8 +60,8 @@ public class SecurityConfig {
                                 "/v3/api-docs/**",
                                 "/swagger-resources/**",
                                 "/webjars/**").permitAll()
-                        .anyRequest().authenticated()
-//                        .anyRequest().permitAll()
+//                        .anyRequest().authenticated()
+                        .anyRequest().permitAll()
                 );
 
         http.sessionManagement(session ->

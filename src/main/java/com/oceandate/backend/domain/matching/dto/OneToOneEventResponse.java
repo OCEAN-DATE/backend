@@ -4,8 +4,6 @@ import com.oceandate.backend.domain.matching.entity.OneToOneEvent;
 import com.oceandate.backend.domain.matching.enums.EventStatus;
 import lombok.*;
 
-import java.math.BigDecimal;
-
 @Getter
 @Setter
 @NoArgsConstructor
@@ -15,7 +13,7 @@ public class OneToOneEventResponse {
     private Long eventId;
     private String eventName;
     private String location;
-    private BigDecimal amount;
+    private Integer amount;
     private String description;
     private EventStatus status;
 

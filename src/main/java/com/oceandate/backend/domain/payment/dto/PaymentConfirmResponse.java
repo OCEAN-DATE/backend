@@ -15,7 +15,7 @@ public class PaymentConfirmResponse {
     private String paymentKey;
     private String orderId;
     private ApplicationStatus status;
-    private Long amount;
+    private Integer amount;
     private LocalDateTime approvedAt;
     private PaymentMethod method;
 }
