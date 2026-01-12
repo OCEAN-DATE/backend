@@ -57,9 +57,11 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/token/**", "/oauth2/**", "/login/**", "/swagger-ui/**",
                                 "/v3/api-docs/**",
                                 "/swagger-resources/**",
-                                "/webjars/**").permitAll()
+                                "/webjars/**",
+                                "/api/mypage/**",
+                                "/api/reviews/**").permitAll()
                         .anyRequest().authenticated()
-//                        .anyRequest().permitAll()
+//                        .anyRequest().permitAll()  // 테스트용: 모든 요청 허용
                 );
 
         http.sessionManagement(session ->
