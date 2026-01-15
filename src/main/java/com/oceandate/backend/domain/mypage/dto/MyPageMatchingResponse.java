@@ -23,21 +23,7 @@ public class MyPageMatchingResponse {
     private LocalDateTime createdAt;
     private LocalDateTime matchedAt;
 
-    // 매칭된 상대방 정보 (매칭 완료된 경우)
-    private MatchedPartnerInfo partnerInfo;
-
     // 리뷰 관련 정보
     private Boolean canWriteReview;  // 리뷰 작성 가능 여부
     private ReviewResponse myReview;  // 내가 작성한 리뷰
-
-    @Getter
-    @NoArgsConstructor
-    @AllArgsConstructor
-    @Builder
-    public static class MatchedPartnerInfo {
-        private Long partnerId;
-        private String partnerName;
-        private Integer partnerAge;
-        private String partnerJob;
-    }
 }
