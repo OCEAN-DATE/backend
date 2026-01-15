@@ -5,6 +5,8 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
+
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
@@ -13,4 +15,5 @@ public class MatchingCreateRequest {
     private Long eventId;
     private Long maleApplicationId;
     private Long femaleApplicationId;
+    private LocalDateTime confirmedDate;
 }

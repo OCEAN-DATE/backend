@@ -15,8 +15,10 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @Tag(name = "One To One")
@@ -138,6 +140,14 @@ public class OneToOneController {
             @RequestBody MatchingCreateRequest request){
         matchingService.createMatching(request);
         return ResponseEntity.ok("매칭이 완료되었습니다.");
+    }
+
+    @Operation(summary = "공통 선호 날짜 조회", description = "남, 여 한 명씩 선택 시 두 신청자의 공통 선호 날짜 반환")
+//    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping("/preferredDates")
+    public ResponseEntity<List<LocalDate>> getPreferredDates(Long maleApplicationId, Long femaleApplicationId){
+        List<LocalDate> response = matchingService.getCommonPreferredDates(maleApplicationId, femaleApplicationId);
+        return ResponseEntity.ok(response);
     }
 }
 

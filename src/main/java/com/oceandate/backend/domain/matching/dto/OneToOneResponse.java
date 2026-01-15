@@ -30,6 +30,8 @@ public class OneToOneResponse {
 
     private UserInfo matchedUserInfo;
 
+    private LocalDateTime confirmedDate;
+
     // 목록 조회용
     public static OneToOneResponse from(OneToOne oneToOne) {
         return OneToOneResponse.builder()
@@ -52,6 +54,7 @@ public class OneToOneResponse {
                 .id(oneToOne.getId())
                 .status(oneToOne.getStatus())
                 .amount(oneToOne.getAmount())
+                .confirmedDate(oneToOne.getConfirmedDate())
                 .createdAt(oneToOne.getCreatedAt())
                 .approvedAt(oneToOne.getApprovedAt())
                 .orderId(oneToOne.getOrderId())
@@ -71,6 +74,7 @@ public class OneToOneResponse {
                 .amount(oneToOne.getAmount())
                 .createdAt(oneToOne.getCreatedAt())
                 .approvedAt(oneToOne.getApprovedAt())
+                .confirmedDate(oneToOne.getConfirmedDate())
                 .orderId(oneToOne.getOrderId())
                 .userId(oneToOne.getMember().getId())
                 .name(oneToOne.getMember().getName())

@@ -15,6 +15,11 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
+import java.util.HashSet;
+import java.util.List;
+import java.util.stream.Collectors;
+
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -55,10 +60,35 @@ public class OneToOneMatchingService {
                 .build();
 
         maleApplication.setStatus(ApplicationStatus.MATCHED);
+        maleApplication.setConfirmedDate(request.getConfirmedDate());
         femaleApplication.setStatus(ApplicationStatus.MATCHED);
+        femaleApplication.setConfirmedDate(request.getConfirmedDate());
 
         matchingRepository.save(matching);
     }
 
+    public List<LocalDate> getCommonPreferredDates(Long maleApplicationId, Long femaleApplicationId){
+        OneToOne maleApplication = oneToOneRepository.findById(maleApplicationId)
+                .orElseThrow(() -> new CustomException(ErrorCode.APPLICATION_NOT_FOUND));
+
+        OneToOne femaleApplication = oneToOneRepository.findById(femaleApplicationId)
+                .orElseThrow(() -> new CustomException(ErrorCode.APPLICATION_NOT_FOUND));
+
+        if(maleApplication.getMember().getSex() != Sex.MAN){
+            throw new CustomException(ErrorCode.GENDER_MISMATCH);
+        }
+
+        if(femaleApplication.getMember().getSex() != Sex.WOMAN){
+            throw new CustomException(ErrorCode.GENDER_MISMATCH);
+        }
+
+        List<LocalDate> malePreferredDates = maleApplication.getPreferredDates();
+        List<LocalDate> femalePreferredDates = femaleApplication.getPreferredDates();
+
+        return malePreferredDates.stream()
+                .filter(new HashSet<>(femalePreferredDates)::contains)
+                .sorted()
+                .collect(Collectors.toList());
+    }
 
 }
