@@ -11,10 +11,12 @@ import com.oceandate.backend.domain.user.entity.Member;
 import com.oceandate.backend.domain.user.repository.MemberRepository;
 import com.oceandate.backend.global.exception.CustomException;
 import com.oceandate.backend.global.exception.constant.ErrorCode;
+import com.oceandate.backend.global.jwt.AccountContext;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -34,12 +36,14 @@ public class OneToOneController {
     @PostMapping("/applications")
     public ResponseEntity<String> createApplication(
             @RequestBody OneToOneRequest request,
-            @RequestParam Long userId) {
+            Authentication authentication) {
+        AccountContext accountContext = (AccountContext) authentication.getPrincipal();
+        Long userId = accountContext.getMemberId();
 
         Member user = memberRepository.findById(userId).
                 orElseThrow(() -> new IllegalArgumentException("사용자가 존재하지 않습니다."));
 
-        oneToOneService.createApplication(userId,request);
+        oneToOneService.createApplication(userId, request);
 
         return ResponseEntity.ok("신청이 완료되었습니다.");
     }
@@ -78,9 +82,10 @@ public class OneToOneController {
 
     @Operation(summary = "내 일대일 소개팅 신청 목록 조회", description = "조회 시 status가 PAYMENT_PENDING이면 결제하기 버튼 활성화")
     @GetMapping("/my")
-    public ResponseEntity<List<OneToOneResponse>> getMyApplications(
-            @RequestParam Long userId
-    ){
+    public ResponseEntity<List<OneToOneResponse>> getMyApplications(Authentication authentication) {
+        AccountContext accountContext = (AccountContext) authentication.getPrincipal();
+        Long userId = accountContext.getMemberId();
+
         Member user = memberRepository.findById(userId)
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
@@ -91,9 +96,12 @@ public class OneToOneController {
 
     @Operation(summary = "내 일대일 소개팅 신청 상세 조회")
     @GetMapping("/my/{applicationId}")
-    public ResponseEntity<OneToOneResponse> getMyApplications(
-            @RequestParam Long userId, @PathVariable Long applicationId
-    ){
+    public ResponseEntity<OneToOneResponse> getMyApplicationDetail(
+            @PathVariable Long applicationId,
+            Authentication authentication) {
+        AccountContext accountContext = (AccountContext) authentication.getPrincipal();
+        Long userId = accountContext.getMemberId();
+
         Member user = memberRepository.findById(userId)
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
