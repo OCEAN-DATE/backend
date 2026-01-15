@@ -49,14 +49,36 @@ public class Review {
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
+    @Column(nullable = false)
+    private LocalDateTime updatedAt;
+
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
+        updatedAt = LocalDateTime.now();
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = LocalDateTime.now();
     }
 
     public void validateRating() {
         if (rating < 1 || rating > 5) {
             throw new IllegalArgumentException("평점은 1에서 5 사이여야 합니다.");
+        }
+    }
+
+    /**
+     * 리뷰 내용 수정
+     */
+    public void updateReview(Integer rating, String content) {
+        if (rating != null) {
+            this.rating = rating;
+            validateRating();
+        }
+        if (content != null && !content.isBlank()) {
+            this.content = content;
         }
     }
 }
