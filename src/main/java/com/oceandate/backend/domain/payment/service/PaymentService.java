@@ -30,6 +30,10 @@ public class PaymentService {
         OneToOne application = oneToOneRepository.findByOrderId(request.getOrderId())
                 .orElseThrow(() -> new CustomException(ErrorCode.ORDER_NOT_FOUND));
 
+        if(application.getStatus() == ApplicationStatus.PAYMENT_COMPLETED){
+            return PaymentConfirmResponse.from(application);
+        }
+
         if(application.getStatus() != ApplicationStatus.PAYMENT_PENDING){
             throw new CustomException(ErrorCode.INVALID_PAYMENT_STATUS);
         }
@@ -37,6 +41,9 @@ public class PaymentService {
         if(!application.getAmount().equals(request.getAmount())){
             throw new CustomException(ErrorCode.PAYMENT_AMOUNT_MISMATCH);
         }
+
+        application.setStatus(ApplicationStatus.PAYMENT_PROCESSING);
+        oneToOneRepository.saveAndFlush(application);
 
         try {
             HttpResponse<String> response = tossPaymentClient.requestConfirm(request);
@@ -61,11 +68,20 @@ public class PaymentService {
                         request.getOrderId(), response.statusCode(), response.body());
                 throw new CustomException(ErrorCode.PAYMENT_CONFIRMATION_FAILED);
             }
-
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             log.error("결제 승인 실패 - orderId: {}, error: {}",
                     request.getOrderId(), e.getMessage());
             throw new CustomException(ErrorCode.PAYMENT_CONFIRMATION_FAILED);
         }
     }
+
+//    public String getPaymentByOrderId(Long userId, String orderId) {
+//        OneToOne application = oneToOneRepository.findByOrderId(orderId)
+//                .orElseThrow(() -> new CustomException(ErrorCode.APPLICATION_NOT_FOUND));
+//
+//        if(!application.getMember().getId().equals(userId)){
+//            throw new CustomException(ErrorCode.ACCESS_DENIED);
+//        }
+//    }
 }

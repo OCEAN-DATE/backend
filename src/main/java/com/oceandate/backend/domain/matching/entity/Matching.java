@@ -46,6 +46,9 @@ public abstract class Matching {
     @Column
     private Integer amount;
 
+    @Column(name = "confirmed_date")
+    private LocalDateTime confirmedDate;
+
     @Column(nullable = false, updatable = false)
     protected LocalDateTime createdAt;
 
