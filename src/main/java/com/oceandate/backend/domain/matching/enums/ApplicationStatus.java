@@ -11,6 +11,7 @@ public enum ApplicationStatus {
     APPROVED,              // 승인완료
     MATCHED,               // 매칭완료
     PAYMENT_PENDING,       // 결제대기
+    PAYMENT_PROCESSING,    // 결제 진행 중
     PAYMENT_COMPLETED,     // 결제완료
     CANCELLED,             // 취소됨
     COMPLETED,             // 이용완료 (리뷰 작성 가능)
