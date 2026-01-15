@@ -11,6 +11,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @JsonInclude
 public class PaymentCancelRequest {
+    String paymentKey;
     String cancelReason;
     Integer cancelAmount;
     RefundReceiveAccount account;

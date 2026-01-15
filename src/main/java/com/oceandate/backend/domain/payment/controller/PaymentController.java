@@ -30,15 +30,27 @@ public class PaymentController {
         return ResponseEntity.ok(response);
     }
 
-//    @Operation(summary = "결제 내역 조회")
-//    @GetMapping("/{orderId}")
-//    public ResponseEntity<String> getPayment(
-//            @AuthenticationPrincipal Long userId,
-//            @PathVariable String orderId
-//    ){
-//        String response = paymentService.getPaymentByOrderId(userId, orderId);
-//        return ResponseEntity.ok()
-//                .contentType(MediaType.APPLICATION_JSON)
-//                .body(response);
-//    }
+    @Operation(summary = "결제 내역 조회")
+    @GetMapping("/{orderId}")
+    public ResponseEntity<String> getPayment(
+            @AuthenticationPrincipal Long userId,
+            @PathVariable String orderId
+    ){
+        String response = paymentService.getPaymentByOrderId(userId, orderId);
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(response);
+    }
+
+    @Operation(summary = "결제 취소")
+    @PostMapping("/cancel")
+    public ResponseEntity<String> cancelPayment(
+            @AuthenticationPrincipal Long userId,
+            @RequestBody PaymentCancelRequest request
+    ){
+        String response = paymentService.cancelPayment(userId, request);
+        return ResponseEntity.ok()
+                . contentType(MediaType.APPLICATION_JSON)
+                .body(response);
+    }
 }
