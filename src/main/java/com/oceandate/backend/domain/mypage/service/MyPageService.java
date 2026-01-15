@@ -19,8 +19,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
-import java.time.Period;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -79,28 +77,15 @@ public class MyPageService {
                 .eventName(oneToOne.getEvent().getEventName())
                 .createdAt(oneToOne.getCreatedAt());
 
-        // 매칭된 상대방 정보 조회
+        // 매칭 완료 시점 조회 및 리뷰 정보 설정
         Optional<OneToOneMatching> matchingOpt = oneToOneMatchingRepository.findByApplicationId(oneToOne.getId());
         if (matchingOpt.isPresent()) {
             OneToOneMatching matching = matchingOpt.get();
             builder.matchedAt(matching.getMatchedAt());
-
-            // 상대방 정보 설정
-            OneToOne partnerApplication = matching.getMaleApplication().getId().equals(oneToOne.getId())
-                    ? matching.getFemaleApplication()
-                    : matching.getMaleApplication();
-
-            Member partner = partnerApplication.getMember();
-            builder.partnerInfo(MyPageMatchingResponse.MatchedPartnerInfo.builder()
-                    .partnerId(partner.getId())
-                    .partnerName(partner.getName())
-                    .partnerAge(calculateAge(partner.getBirth()))
-                    .partnerJob(partnerApplication.getJob())
-                    .build());
-
-            // 리뷰 정보 설정
-            setReviewInfo(builder, memberId, MatchingType.ONE_TO_ONE, oneToOne.getId(), oneToOne.getStatus());
         }
+
+        // 리뷰 정보 설정
+        setReviewInfo(builder, memberId, MatchingType.ONE_TO_ONE, oneToOne.getId(), oneToOne.getStatus(), oneToOne.getEvent().getEventName());
 
         return builder.build();
     }
@@ -118,7 +103,7 @@ public class MyPageService {
 
         // 로테이션은 여러 명과 만나므로 상대방 정보는 null
         // 리뷰 정보 설정
-        setReviewInfo(builder, memberId, MatchingType.ROTATION, rotation.getId(), rotation.getStatus());
+        setReviewInfo(builder, memberId, MatchingType.ROTATION, rotation.getId(), rotation.getStatus(), rotation.getEvent().getEventName());
 
         return builder.build();
     }
@@ -131,7 +116,8 @@ public class MyPageService {
             Long memberId,
             MatchingType matchingType,
             Long matchingId,
-            ApplicationStatus status) {
+            ApplicationStatus status,
+            String eventName) {
 
         // 리뷰 작성 가능 여부: 상태가 COMPLETED이고 아직 리뷰를 작성하지 않았을 때
         boolean canWriteReview = status == ApplicationStatus.COMPLETED
@@ -144,34 +130,6 @@ public class MyPageService {
         Optional<Review> reviewOpt = reviewRepository.findByWriterIdAndMatchingTypeAndMatchingId(
                 memberId, matchingType, matchingId);
 
-        reviewOpt.ifPresent(review -> builder.myReview(ReviewResponse.from(review)));
-    }
-
-    /**
-     * 나이 계산 (birth 형식: MMDD 또는 YYYYMMDD)
-     */
-    private Integer calculateAge(String birth) {
-        if (birth == null || birth.isEmpty()) {
-            return null;
-        }
-
-        try {
-            int birthYear;
-            if (birth.length() == 4) {
-                // MMDD 형식인 경우, 연도 추정 불가
-                return null;
-            } else if (birth.length() == 8) {
-                // YYYYMMDD 형식
-                birthYear = Integer.parseInt(birth.substring(0, 4));
-            } else {
-                return null;
-            }
-
-            int currentYear = LocalDate.now().getYear();
-            return currentYear - birthYear + 1; // 한국 나이
-        } catch (NumberFormatException e) {
-            log.warn("생년월일 파싱 실패: {}", birth);
-            return null;
-        }
+        reviewOpt.ifPresent(review -> builder.myReview(ReviewResponse.from(review, eventName)));
     }
 }
