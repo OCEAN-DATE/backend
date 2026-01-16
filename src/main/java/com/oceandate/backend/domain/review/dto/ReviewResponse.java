@@ -20,9 +20,11 @@ public class ReviewResponse {
     private String writerName;
     private MatchingType matchingType;
     private Long matchingId;
+    private String eventName;  // 소개팅 상품명
     private Integer rating;
     private String content;
     private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
 
     public static ReviewResponse from(Review review) {
         return ReviewResponse.builder()
@@ -34,6 +36,22 @@ public class ReviewResponse {
                 .rating(review.getRating())
                 .content(review.getContent())
                 .createdAt(review.getCreatedAt())
+                .updatedAt(review.getUpdatedAt())
+                .build();
+    }
+
+    public static ReviewResponse from(Review review, String eventName) {
+        return ReviewResponse.builder()
+                .id(review.getId())
+                .writerId(review.getWriter().getId())
+                .writerName(review.getWriter().getName())
+                .matchingType(review.getMatchingType())
+                .matchingId(review.getMatchingId())
+                .eventName(eventName)
+                .rating(review.getRating())
+                .content(review.getContent())
+                .createdAt(review.getCreatedAt())
+                .updatedAt(review.getUpdatedAt())
                 .build();
     }
 }

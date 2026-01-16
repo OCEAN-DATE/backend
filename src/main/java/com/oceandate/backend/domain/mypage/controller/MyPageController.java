@@ -2,14 +2,15 @@ package com.oceandate.backend.domain.mypage.controller;
 
 import com.oceandate.backend.domain.mypage.dto.MyPageMatchingResponse;
 import com.oceandate.backend.domain.mypage.service.MyPageService;
+import com.oceandate.backend.global.jwt.AccountContext;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -29,8 +30,10 @@ public class MyPageController {
                     "각 매칭에 대해 리뷰 작성 가능 여부와 이미 작성한 리뷰 정보를 포함합니다."
     )
     @GetMapping("/matchings")
-    public ResponseEntity<List<MyPageMatchingResponse>> getMyMatchings(
-            @RequestParam Long userId) {
+    public ResponseEntity<List<MyPageMatchingResponse>> getMyMatchings(Authentication authentication) {
+        AccountContext accountContext = (AccountContext) authentication.getPrincipal();
+        Long userId = accountContext.getMemberId();
+
         log.info("마이페이지 매칭 목록 조회 - userId: {}", userId);
 
         List<MyPageMatchingResponse> matchings = myPageService.getMyMatchings(userId);

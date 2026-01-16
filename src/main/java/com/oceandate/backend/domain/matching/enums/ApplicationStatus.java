@@ -14,5 +14,6 @@ public enum ApplicationStatus {
     PAYMENT_PROCESSING,    // 결제 진행 중
     PAYMENT_COMPLETED,     // 결제완료
     CANCELLED,             // 취소됨
-    COMPLETED              // 이용완료
+    COMPLETED,             // 이용완료 (리뷰 작성 가능)
+    NO_SHOW                // 노쇼 (리뷰 작성 불가)
 }

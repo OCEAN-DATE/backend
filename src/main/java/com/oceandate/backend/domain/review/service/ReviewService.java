@@ -8,6 +8,7 @@ import com.oceandate.backend.domain.matching.repository.OneToOneRepository;
 import com.oceandate.backend.domain.matching.repository.RotationRepository;
 import com.oceandate.backend.domain.review.dto.ReviewCreateRequest;
 import com.oceandate.backend.domain.review.dto.ReviewResponse;
+import com.oceandate.backend.domain.review.dto.ReviewUpdateRequest;
 import com.oceandate.backend.domain.review.entity.Review;
 import com.oceandate.backend.domain.review.repository.ReviewRepository;
 import com.oceandate.backend.domain.user.entity.Member;
@@ -17,6 +18,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -52,7 +54,10 @@ public class ReviewService {
         // 3. 매칭 타입에 따라 유효성 검증
         validateMatchingAndStatus(writerId, request);
 
-        // 4. 리뷰 생성
+        // 4. 리뷰 작성 기한 확인 (30일 이내)
+        validateReviewDeadline(request.getMatchingType(), request.getMatchingId());
+
+        // 5. 리뷰 생성
         Review review = Review.builder()
                 .writer(writer)
                 .matchingType(request.getMatchingType())
@@ -88,6 +93,11 @@ public class ReviewService {
         OneToOne oneToOne = oneToOneRepository.findById(request.getMatchingId())
                 .orElseThrow(() -> new IllegalArgumentException("매칭 정보를 찾을 수 없습니다."));
 
+        // 노쇼 확인
+        if (oneToOne.getStatus() == ApplicationStatus.NO_SHOW) {
+            throw new IllegalStateException("노쇼한 매칭에는 리뷰를 작성할 수 없습니다.");
+        }
+
         // 매칭 상태 확인
         if (oneToOne.getStatus() != ApplicationStatus.COMPLETED) {
             throw new IllegalStateException("완료된 매칭에 대해서만 리뷰를 작성할 수 있습니다.");
@@ -105,6 +115,11 @@ public class ReviewService {
     private void validateRotationMatching(Long writerId, ReviewCreateRequest request) {
         Rotation rotation = rotationRepository.findById(request.getMatchingId())
                 .orElseThrow(() -> new IllegalArgumentException("매칭 정보를 찾을 수 없습니다."));
+
+        // 노쇼 확인
+        if (rotation.getStatus() == ApplicationStatus.NO_SHOW) {
+            throw new IllegalStateException("노쇼한 매칭에는 리뷰를 작성할 수 없습니다.");
+        }
 
         // 매칭 상태 확인
         if (rotation.getStatus() != ApplicationStatus.COMPLETED) {
@@ -147,10 +162,82 @@ public class ReviewService {
     }
 
     /**
-     * 특정 매칭에 대한 리뷰 작성 가능 여부 확인
+     * 리뷰 수정
      */
-    public boolean canWriteReview(Long memberId, MatchingType matchingType, Long matchingId) {
-        return !reviewRepository.existsByWriterIdAndMatchingTypeAndMatchingId(
-                memberId, matchingType, matchingId);
+    @Transactional
+    public ReviewResponse updateReview(Long reviewId, Long memberId, ReviewUpdateRequest request) {
+        log.info("리뷰 수정 시작 - reviewId: {}, memberId: {}", reviewId, memberId);
+
+        // 1. 리뷰 조회
+        Review review = reviewRepository.findById(reviewId)
+                .orElseThrow(() -> new IllegalArgumentException("리뷰를 찾을 수 없습니다."));
+
+        // 2. 작성자 확인
+        if (!review.getWriter().getId().equals(memberId)) {
+            throw new IllegalArgumentException("본인이 작성한 리뷰만 수정할 수 있습니다.");
+        }
+
+        // 3. 수정 기한 확인 (30일 이내)
+        validateReviewDeadline(review.getMatchingType(), review.getMatchingId());
+
+        // 4. 리뷰 수정
+        review.updateReview(request.getRating(), request.getContent());
+
+        log.info("리뷰 수정 완료 - reviewId: {}", reviewId);
+        return ReviewResponse.from(review);
+    }
+
+    /**
+     * 리뷰 삭제
+     */
+    @Transactional
+    public void deleteReview(Long reviewId, Long memberId) {
+        log.info("리뷰 삭제 시작 - reviewId: {}, memberId: {}", reviewId, memberId);
+
+        // 1. 리뷰 조회
+        Review review = reviewRepository.findById(reviewId)
+                .orElseThrow(() -> new IllegalArgumentException("리뷰를 찾을 수 없습니다."));
+
+        // 2. 작성자 확인
+        if (!review.getWriter().getId().equals(memberId)) {
+            throw new IllegalArgumentException("본인이 작성한 리뷰만 삭제할 수 있습니다.");
+        }
+
+        // 3. 리뷰 삭제
+        reviewRepository.delete(review);
+
+        log.info("리뷰 삭제 완료 - reviewId: {}", reviewId);
+    }
+
+    /**
+     * 리뷰 작성/수정 가능 기한 확인 (매칭 완료 후 30일 이내)
+     */
+    private void validateReviewDeadline(MatchingType matchingType, Long matchingId) {
+        LocalDateTime completedAt = getMatchingCompletedAt(matchingType, matchingId);
+
+        if (completedAt == null) {
+            throw new IllegalStateException("매칭 완료 시점을 확인할 수 없습니다.");
+        }
+
+        LocalDateTime deadline = completedAt.plusDays(30);
+        if (LocalDateTime.now().isAfter(deadline)) {
+            throw new IllegalStateException("리뷰 작성/수정 기한이 만료되었습니다. (완료 후 30일 이내 가능)");
+        }
+    }
+
+    /**
+     * 매칭 완료 시점 조회
+     */
+    private LocalDateTime getMatchingCompletedAt(MatchingType matchingType, Long matchingId) {
+        if (matchingType == MatchingType.ONE_TO_ONE) {
+            OneToOne oneToOne = oneToOneRepository.findById(matchingId)
+                    .orElseThrow(() -> new IllegalArgumentException("매칭 정보를 찾을 수 없습니다."));
+            return oneToOne.getApprovedAt();
+        } else if (matchingType == MatchingType.ROTATION) {
+            Rotation rotation = rotationRepository.findById(matchingId)
+                    .orElseThrow(() -> new IllegalArgumentException("매칭 정보를 찾을 수 없습니다."));
+            return rotation.getApprovedAt();
+        }
+        return null;
     }
 }
