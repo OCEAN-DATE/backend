@@ -2,6 +2,8 @@ package com.oceandate.backend.domain.user.service;
 
 import com.oceandate.backend.domain.user.entity.Member;
 import com.oceandate.backend.domain.user.repository.MemberRepository;
+import com.oceandate.backend.global.exception.CustomException;
+import com.oceandate.backend.global.exception.constant.ErrorCode;
 import com.oceandate.backend.global.oauth2.userinfo.SocialUserInfo;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -26,5 +28,12 @@ public class MemberService {
         // 신규 회원 등록
         Member newMember = Member.from(userInfo);
         return memberRepository.save(newMember);
+    }
+
+    public Member findById(Long memberId) {
+        Member member = memberRepository.findById(memberId)
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
+
+        return member;
     }
 }

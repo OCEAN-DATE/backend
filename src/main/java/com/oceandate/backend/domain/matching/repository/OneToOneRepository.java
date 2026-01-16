@@ -12,4 +12,5 @@ public interface OneToOneRepository extends JpaRepository<OneToOne, Long> {
     Optional<OneToOne> findByOrderId(String orderId);
     Boolean existsByMemberIdAndEventId(Long memberId, Long eventId);
     Optional<OneToOne> findByIdAndEventId(Long applicationId, Long id);
+    Optional<OneToOne> findByPaymentKey(String paymentKey);
 }

@@ -65,12 +65,12 @@ public class TossPaymentClient {
         return HttpClient.newHttpClient().send(request, HttpResponse.BodyHandlers.ofString());
     }
 
-    public HttpResponse<String> cancelPayment(String paymentKey, PaymentCancelRequest paymentCancelRequest)
+    public HttpResponse<String> cancelPayment(PaymentCancelRequest paymentCancelRequest)
             throws IOException, InterruptedException {
         String requestBody = objectMapper.writeValueAsString(paymentCancelRequest);
 
         HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create("https://api.tosspayments.com/v1/payments/" + paymentKey + "/cancel"))
+                .uri(URI.create("https://api.tosspayments.com/v1/payments/" + paymentCancelRequest.getPaymentKey() + "/cancel"))
                 .header("Authorization", getAuthorizations())
                 .header("Content-Type", "application/json")
                 .method("POST", HttpRequest.BodyPublishers.ofString(requestBody))
@@ -78,6 +78,4 @@ public class TossPaymentClient {
 
         return HttpClient.newHttpClient().send(request, HttpResponse.BodyHandlers.ofString());
     }
-
-
 }
