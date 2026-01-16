@@ -1,5 +1,8 @@
 package com.oceandate.backend.domain.user.dto.response;
 
+import lombok.Builder;
+
+@Builder
 public record IdentifierResponse(
         Long memberId,
         String name
