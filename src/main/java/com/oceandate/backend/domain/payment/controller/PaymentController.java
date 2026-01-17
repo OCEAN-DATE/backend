@@ -5,6 +5,7 @@ import com.oceandate.backend.domain.payment.dto.PaymentConfirmRequest;
 import com.oceandate.backend.domain.payment.dto.PaymentConfirmResponse;
 import com.oceandate.backend.domain.payment.dto.TossPaymentResponse;
 import com.oceandate.backend.domain.payment.service.PaymentService;
+import com.oceandate.backend.global.jwt.AccountContext;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -33,10 +34,10 @@ public class PaymentController {
     @Operation(summary = "결제 내역 조회")
     @GetMapping("/{orderId}")
     public ResponseEntity<String> getPayment(
-            @AuthenticationPrincipal Long userId,
+            @AuthenticationPrincipal AccountContext accountContext,
             @PathVariable String orderId
     ){
-        String response = paymentService.getPaymentByOrderId(userId, orderId);
+        String response = paymentService.getPaymentByOrderId(accountContext, orderId);
         return ResponseEntity.ok()
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(response);
@@ -45,10 +46,10 @@ public class PaymentController {
     @Operation(summary = "결제 취소")
     @PostMapping("/cancel")
     public ResponseEntity<String> cancelPayment(
-            @AuthenticationPrincipal Long userId,
+            @AuthenticationPrincipal AccountContext accountContext,
             @RequestBody PaymentCancelRequest request
     ){
-        String response = paymentService.cancelPayment(userId, request);
+        String response = paymentService.cancelPayment(accountContext, request);
         return ResponseEntity.ok()
                 . contentType(MediaType.APPLICATION_JSON)
                 .body(response);

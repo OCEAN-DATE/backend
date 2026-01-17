@@ -16,6 +16,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.Base64;
+import java.util.UUID;
 
 @Component
 @RequiredArgsConstructor
@@ -73,6 +74,7 @@ public class TossPaymentClient {
                 .uri(URI.create("https://api.tosspayments.com/v1/payments/" + paymentCancelRequest.getPaymentKey() + "/cancel"))
                 .header("Authorization", getAuthorizations())
                 .header("Content-Type", "application/json")
+                .header("Idempotency-Key", UUID.randomUUID().toString())
                 .method("POST", HttpRequest.BodyPublishers.ofString(requestBody))
                 .build();
 
