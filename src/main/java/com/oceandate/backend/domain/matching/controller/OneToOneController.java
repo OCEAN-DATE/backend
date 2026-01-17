@@ -18,6 +18,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
@@ -38,8 +39,7 @@ public class OneToOneController {
     @PostMapping("/applications")
     public ResponseEntity<String> createApplication(
             @RequestBody OneToOneRequest request,
-            Authentication authentication) {
-        AccountContext accountContext = (AccountContext) authentication.getPrincipal();
+            @AuthenticationPrincipal AccountContext accountContext) {
         Long userId = accountContext.getMemberId();
 
         Member user = memberRepository.findById(userId).
@@ -84,8 +84,8 @@ public class OneToOneController {
 
     @Operation(summary = "내 일대일 소개팅 신청 목록 조회", description = "조회 시 status가 PAYMENT_PENDING이면 결제하기 버튼 활성화")
     @GetMapping("/my")
-    public ResponseEntity<List<OneToOneResponse>> getMyApplications(Authentication authentication) {
-        AccountContext accountContext = (AccountContext) authentication.getPrincipal();
+    public ResponseEntity<List<OneToOneResponse>> getMyApplications(
+            @AuthenticationPrincipal AccountContext accountContext) {
         Long userId = accountContext.getMemberId();
 
         Member user = memberRepository.findById(userId)
@@ -100,8 +100,7 @@ public class OneToOneController {
     @GetMapping("/my/{applicationId}")
     public ResponseEntity<OneToOneResponse> getMyApplicationDetail(
             @PathVariable Long applicationId,
-            Authentication authentication) {
-        AccountContext accountContext = (AccountContext) authentication.getPrincipal();
+            @AuthenticationPrincipal AccountContext accountContext) {
         Long userId = accountContext.getMemberId();
 
         Member user = memberRepository.findById(userId)

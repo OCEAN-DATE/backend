@@ -4,6 +4,7 @@ import com.oceandate.backend.domain.matching.dto.RotationEventRequest;
 import com.oceandate.backend.domain.matching.dto.RotationEventResponse;
 import com.oceandate.backend.domain.matching.dto.RotationRequest;
 import com.oceandate.backend.domain.matching.dto.RotationResponse;
+import com.oceandate.backend.domain.matching.enums.ApplicationStatus;
 import com.oceandate.backend.domain.matching.service.RotationEventService;
 import com.oceandate.backend.domain.matching.service.RotationService;
 import com.oceandate.backend.global.jwt.AccountContext;
@@ -13,7 +14,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @Tag(name = "Rotation")
 @RestController
@@ -28,8 +32,7 @@ public class RotationController {
     @PostMapping("/applications")
     public ResponseEntity<RotationResponse> createApplication(
             @RequestBody RotationRequest request,
-            Authentication authentication) {
-        AccountContext accountContext = (AccountContext) authentication.getPrincipal();
+            @AuthenticationPrincipal AccountContext accountContext) {
         Long userId = accountContext.getMemberId();
 
         RotationResponse response = rotationService.createApplication(userId, request);
@@ -46,5 +49,25 @@ public class RotationController {
         RotationEventResponse response = rotationEventService.createEvent(rotationEventRequest);
 
         return ResponseEntity.ok(response);
+    }
+
+    @Operation(summary = "로테이션 소개팅 신청서 목록 조회 (관리자)")
+    @GetMapping("/applications")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<RotationResponse>> getApplications(
+            @RequestParam(required = false) ApplicationStatus status
+    ){
+        List<RotationResponse> response = rotationService.getApplications(status);
+        return ResponseEntity.ok(response);
+    }
+
+    @Operation(summary = "로테이션 소개팅 신청서 상태 변경 (관리자)")
+    @PatchMapping("applications/{id}/status")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Void> updateStatus(
+        @PathVariable Long id, @RequestParam ApplicationStatus status){
+
+        rotationService.updateStatus(id, status);
+        return ResponseEntity.ok().build();
     }
 }

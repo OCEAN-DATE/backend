@@ -41,4 +41,6 @@ public interface RotationRepository extends JpaRepository<Rotation, Long> {
             LocalDateTime endTime);
 
     long countByStatus(ApplicationStatus status);
+
+    List<Rotation> findByStatus(ApplicationStatus status);
 }

@@ -19,6 +19,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -74,11 +75,34 @@ public class RotationService {
         rotationRepository.save(application);
 
         return RotationResponse.builder()
-                .applicationId(application.getId())
+                .id(application.getId())
                 .orderId(orderId)
                 .amount(event.getAmount())
                 .orderName(event.getEventName())
                 .customerEmail(user.getEmail())
                 .build();
+    }
+
+    @Transactional
+    public void updateStatus(Long id, ApplicationStatus status) {
+        Rotation application = rotationRepository.findById(id)
+                .orElseThrow(() -> new CustomException(ErrorCode.APPLICATION_NOT_FOUND));
+        if (status == ApplicationStatus.APPROVED) {
+            application.setApprovedAt(LocalDateTime.now());
+        }
+        application.setStatus(status);
+    }
+
+    public List<RotationResponse> getApplications(ApplicationStatus status) {
+        List<Rotation> applications;
+        if(status == null){
+            applications = rotationRepository.findAll();
+        }
+        else {
+            applications = rotationRepository.findByStatus(status);
+        }
+        return applications.stream()
+                .map(RotationResponse::from)
+                .toList();
     }
 }
