@@ -81,12 +81,17 @@ jobs:
       - name: Execute commands on EC2
         uses: appleboy/ssh-action@v1.0.3
         env:
+          
           SPRING_DATASOURCE_URL: ${{ secrets.DB_HOST }}
           SPRING_DATASOURCE_USERNAME: ${{ secrets.DB_USER }}
           SPRING_DATASOURCE_PASSWORD: ${{ secrets.DB_PASSWORD }}
           SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_KAKAO_REDIRECT_URI: ${{ secrets.KAKAO_REDIRECT_URL }}
         
         with:
+          host: ${{ secrets.EC2_HOST }} 
+          key: ${{ secrets.EC2_SSH_KEY }} 
+          username: ${{ secrets.EC2_USERNAME }} 
+          port: ${{ secrets.EC2_PORT }}
           envs: SPRING_DATASOURCE_URL,SPRING_DATASOURCE_USERNAME,SPRING_DATASOURCE_PASSWORD,SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_KAKAO_REDIRECT_URI
           script: |
             cd /home/ubuntu/meetup/build/libs
