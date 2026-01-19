@@ -84,20 +84,17 @@ jobs:
           SPRING_DATASOURCE_URL: ${{ secrets.DB_HOST }}
           SPRING_DATASOURCE_USERNAME: ${{ secrets.DB_USER }}
           SPRING_DATASOURCE_PASSWORD: ${{ secrets.DB_PASSWORD }}
-          KAKAO_REDIRECT_URL: ${{ secrets.KAKAO_REDIRECT_URL }}
+          SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_KAKAO_REDIRECT_URI: ${{ secrets.KAKAO_REDIRECT_URL }}
+        
         with:
-          host: ${{ secrets.EC2_HOST }}
-          key: ${{ secrets.EC2_SSH_KEY }}
-          username: ${{ secrets.EC2_USERNAME }}
-          port: ${{ secrets.EC2_PORT }}
-          envs: SPRING_DATASOURCE_URL,SPRING_DATASOURCE_USERNAME,SPRING_DATASOURCE_PASSWORD,KAKAO_REDIRECT_URL
+          envs: SPRING_DATASOURCE_URL,SPRING_DATASOURCE_USERNAME,SPRING_DATASOURCE_PASSWORD,SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_KAKAO_REDIRECT_URI
           script: |
             cd /home/ubuntu/meetup/build/libs
-            sudo ps -ef | grep -v grep | grep "java -jar backend" | awk '{print $2}' | xargs -r kill -15
-    
+            sudo ps -ef | grep -v grep | grep "backend-0.0.1-SNAPSHOT.jar" | awk '{print $2}' | xargs -r kill -15
+        
+            echo "REDIRECT_URI=$SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_KAKAO_REDIRECT_URI"
+        
             nohup java -jar backend-0.0.1-SNAPSHOT.jar \
               --spring.config.additional-location=file:/home/ubuntu/meetup/ \
               --server.port=8080 \
-              --spring.security.oauth2.client.registration.kakao.redirect-uri="$KAKAO_REDIRECT_URL" \
               >> ./meetup.log 2>&1 &
-
