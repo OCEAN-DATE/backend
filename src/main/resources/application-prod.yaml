@@ -30,9 +30,6 @@ spring:
   application:
     name: ocean-date-backend
 
-  profiles:
-    include: secret
-
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: ${JDBC_URL}

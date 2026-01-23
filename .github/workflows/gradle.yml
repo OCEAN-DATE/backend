@@ -94,4 +94,4 @@ jobs:
           script: |
             cd /home/ubuntu/meetup/build/libs
             sudo ps -ef | grep -v grep | grep "java -jar backend" | awk '{print $2}' | xargs -r kill -15
-            nohup java -jar backend-0.0.1-SNAPSHOT.jar --spring.profiles.active=prod --spring.config.additional-location=file:/home/ubuntu/meetup/ --server.port=8080 >> ./meetup.log 2>&1 &
+            nohup java -jar backend-0.0.1-SNAPSHOT.jar --spring.profiles.active=prod,test --spring.config.additional-location=file:/home/ubuntu/meetup/ --server.port=8080 >> ./meetup.log 2>&1 &
