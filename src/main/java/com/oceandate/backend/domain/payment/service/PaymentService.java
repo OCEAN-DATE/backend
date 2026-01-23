@@ -2,9 +2,13 @@ package com.oceandate.backend.domain.payment.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.oceandate.backend.domain.matching.entity.Matching;
 import com.oceandate.backend.domain.matching.entity.OneToOne;
+import com.oceandate.backend.domain.matching.entity.Rotation;
 import com.oceandate.backend.domain.matching.enums.ApplicationStatus;
+import com.oceandate.backend.domain.matching.enums.MatchingType;
 import com.oceandate.backend.domain.matching.repository.OneToOneRepository;
+import com.oceandate.backend.domain.matching.repository.RotationRepository;
 import com.oceandate.backend.domain.payment.client.TossPaymentClient;
 import com.oceandate.backend.domain.payment.dto.PaymentCancelRequest;
 import com.oceandate.backend.domain.payment.dto.PaymentConfirmRequest;
@@ -18,6 +22,7 @@ import com.oceandate.backend.global.jwt.AccountContext;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Service;
 
 import java.net.http.HttpResponse;
@@ -30,25 +35,46 @@ public class PaymentService {
 
     private final MemberRepository memberRepository;
     private final OneToOneRepository oneToOneRepository;
+    private final RotationRepository rotationRepository;
     private final TossPaymentClient tossPaymentClient;
     private final ObjectMapper objectMapper;
 
-    public PaymentConfirmResponse confirmPayment(PaymentConfirmRequest request){
-        OneToOne application = oneToOneRepository.findByOrderIdWithLock(request.getOrderId())
-                .orElseThrow(() -> new CustomException(ErrorCode.ORDER_NOT_FOUND));
+    public PaymentConfirmResponse confirmPayment(PaymentConfirmRequest request) {
 
-        if(application.getStatus() == ApplicationStatus.PAYMENT_COMPLETED){
-            if(!application.getPaymentKey().equals(request.getPaymentKey())){
+        if (request.getMatchingType() == MatchingType.ONE_TO_ONE) {
+            OneToOne application = oneToOneRepository.findByOrderIdWithLock(request.getOrderId())
+                    .orElseThrow(() -> new CustomException(ErrorCode.ORDER_NOT_FOUND));
+
+            return processPayment(application, oneToOneRepository, request);
+
+        } else if (request.getMatchingType() == MatchingType.ROTATION) {
+            Rotation application = rotationRepository.findByOrderIdWithLock(request.getOrderId())
+                    .orElseThrow(() -> new CustomException(ErrorCode.ORDER_NOT_FOUND));
+
+            return processPayment(application, rotationRepository, request);
+
+        } else {
+            throw new CustomException(ErrorCode.INVALID_MATCHING_TYPE);
+        }
+    }
+
+    private <T extends Matching> PaymentConfirmResponse processPayment(
+            T application,
+            JpaRepository<T, Long> repository,
+            PaymentConfirmRequest request) {
+
+        if (application.getStatus() == ApplicationStatus.PAYMENT_COMPLETED) {
+            if (!application.getPaymentKey().equals(request.getPaymentKey())) {
                 throw new CustomException(ErrorCode.PAYMENT_KEY_MISMATCH);
             }
             return PaymentConfirmResponse.from(application);
         }
 
-        if(application.getStatus() != ApplicationStatus.PAYMENT_PENDING){
+        if (application.getStatus() != ApplicationStatus.PAYMENT_PENDING) {
             throw new CustomException(ErrorCode.INVALID_PAYMENT_STATUS);
         }
 
-        if(!application.getAmount().equals(request.getAmount())){
+        if (!application.getAmount().equals(request.getAmount())) {
             throw new CustomException(ErrorCode.PAYMENT_AMOUNT_MISMATCH);
         }
 
@@ -64,8 +90,8 @@ public class PaymentService {
                 try {
                     application.setPaymentKey(request.getPaymentKey());
                     application.setStatus(ApplicationStatus.PAYMENT_COMPLETED);
-                    oneToOneRepository.save(application);
-                    oneToOneRepository.flush();  // 즉시 DB 반영하여 에러 조기 발견
+                    repository.save(application);
+                    repository.flush();
 
                     log.info("결제 승인 완료 - orderId: {}, paymentKey: {}",
                             request.getOrderId(), request.getPaymentKey());
@@ -79,9 +105,8 @@ public class PaymentService {
                     try {
                         rollbackTossPayment(request.getPaymentKey(), "DB 저장 실패로 인한 자동 취소");
                         log.info("토스 결제 자동 취소 완료 - paymentKey: {}", request.getPaymentKey());
-
                     } catch (Exception cancelException) {
-                        log.error(" 토스 결제 취소 실패! 수동 처리 필요 - paymentKey: {}, orderId: {}",
+                        log.error("토스 결제 취소 실패! 수동 처리 필요 - paymentKey: {}, orderId: {}",
                                 request.getPaymentKey(), request.getOrderId(), cancelException);
                     }
 
@@ -92,11 +117,9 @@ public class PaymentService {
                 String tossErrorCode = objectMapper.readTree(response.body()).get("code").asText();
                 throw new CustomException(TossErrorMapper.fromTossErrorCode(tossErrorCode));
             }
-        }
-        catch (CustomException e){
+        } catch (CustomException e) {
             throw e;
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             log.error("결제 승인 실패 - orderId: {}, error: {}",
                     request.getOrderId(), e.getMessage());
             throw new CustomException(ErrorCode.PAYMENT_CONFIRMATION_FAILED);

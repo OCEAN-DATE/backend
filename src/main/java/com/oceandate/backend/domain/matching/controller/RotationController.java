@@ -11,6 +11,7 @@ import com.oceandate.backend.global.jwt.AccountContext;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -41,10 +42,10 @@ public class RotationController {
     }
 
     @Operation(summary = "로테이션 소개팅 이벤트 생성(관리자)")
-    @PostMapping("/event")
+    @PostMapping(value = "/event", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<RotationEventResponse> createEvent(
-            @RequestBody RotationEventRequest rotationEventRequest
+            @ModelAttribute RotationEventRequest rotationEventRequest
     ){
         RotationEventResponse response = rotationEventService.createEvent(rotationEventRequest);
 

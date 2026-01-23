@@ -2,6 +2,11 @@ spring:
   application:
     name: ocean-date-backend
 
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+
   profiles:
     include: secret
 
@@ -11,7 +16,7 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: none
+      ddl-auto: update
       naming:
         physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
     show-sql: true
@@ -62,3 +67,17 @@ toss:
   payments:
     secret-key: ${TOSS_SECRET_KEY}
     base-url: https://api.tosspayments.com/v1/payments
+
+cloud:
+  aws:
+    credentials:
+      accessKey: ${AWS_ACCESS_KEY_ID}
+      secretKey: ${AWS_SECRET_ACCESS_KEY}
+    region:
+      static: ap-northeast-2
+    s3:
+      bucket:
+        name: ${BUCKET_NAME}
+    stack:
+      auto: false
+

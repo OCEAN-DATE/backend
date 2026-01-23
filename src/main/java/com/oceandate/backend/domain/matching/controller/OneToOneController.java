@@ -15,6 +15,7 @@ import com.oceandate.backend.global.jwt.AccountContext;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -113,9 +114,9 @@ public class OneToOneController {
 
     @Operation(summary = "일대일 소개팅 이벤트 생성(관리자)")
 //    @PreAuthorize("hasRole('ADMIN')")
-    @PostMapping("/event")
+    @PostMapping(value = "/event", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<OneToOneEvent> createEvent(
-            @RequestBody OneToOneEventRequest request
+            @ModelAttribute OneToOneEventRequest request
     ){
         OneToOneEvent event = oneToOneEventService.createEvent(request);
 

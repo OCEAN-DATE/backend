@@ -44,6 +44,7 @@ public enum ErrorCode {
     DOCUMENT_ALREADY_SUBMITTED("APPLICATION_400", "이미 서류를 제출했습니다."),
 
     // 결제
+    INVALID_MATCHING_TYPE("PAYMENT_400", "매칭 유형이 유효하지 않습니다." ),
     PAYMENT_FAILED("PAYMENT_400", "결제에 실패했습니다."),
     REFUND_FAILED("PAYMENT_400", "환불에 실패했습니다."),
     ORDER_NOT_FOUND("ORDER_404", "주문을 찾을 수 없습니다."),
