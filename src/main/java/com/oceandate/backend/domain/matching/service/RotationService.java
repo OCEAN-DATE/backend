@@ -1,12 +1,12 @@
 package com.oceandate.backend.domain.matching.service;
 
+import com.oceandate.backend.domain.matching.dto.RotationEventResponse;
 import com.oceandate.backend.domain.matching.dto.RotationResponse;
 import com.oceandate.backend.domain.matching.entity.Rotation;
 import com.oceandate.backend.domain.matching.dto.RotationRequest;
 import com.oceandate.backend.domain.matching.entity.RotationEvent;
 import com.oceandate.backend.domain.matching.enums.ApplicationStatus;
 import com.oceandate.backend.domain.matching.enums.EventStatus;
-import com.oceandate.backend.domain.matching.enums.VerificationStatus;
 import com.oceandate.backend.domain.matching.repository.RotationEventRepository;
 import com.oceandate.backend.domain.matching.repository.RotationRepository;
 import com.oceandate.backend.domain.user.entity.Member;
@@ -14,6 +14,7 @@ import com.oceandate.backend.domain.user.entity.Sex;
 import com.oceandate.backend.domain.user.repository.MemberRepository;
 import com.oceandate.backend.global.exception.CustomException;
 import com.oceandate.backend.global.exception.constant.ErrorCode;
+import com.oceandate.backend.global.jwt.AccountContext;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -67,9 +68,6 @@ public class RotationService {
                 .introduction(request.getIntroduction())
                 .orderId(orderId)
                 .status(ApplicationStatus.PAYMENT_PENDING)
-                .verificationStatus(VerificationStatus.PENDING)
-                .documentDeadline(LocalDateTime.now().plusDays(1))
-                .refunded(false)
                 .build();
 
         rotationRepository.save(application);
@@ -88,19 +86,50 @@ public class RotationService {
         Rotation application = rotationRepository.findById(id)
                 .orElseThrow(() -> new CustomException(ErrorCode.APPLICATION_NOT_FOUND));
         if (status == ApplicationStatus.APPROVED) {
+            application.getEvent().incrementApprovedCount(application.getMember().getSex());
             application.setApprovedAt(LocalDateTime.now());
         }
         application.setStatus(status);
     }
 
-    public List<RotationResponse> getApplications(ApplicationStatus status) {
+    public List<RotationResponse> getApplications(Long eventId, ApplicationStatus status) {
         List<Rotation> applications;
         if(status == null){
-            applications = rotationRepository.findAll();
+            applications = rotationRepository.findByEventId(eventId);
         }
         else {
-            applications = rotationRepository.findByStatus(status);
+            applications = rotationRepository.findByEventIdAndStatus(status);
         }
+        return applications.stream()
+                .map(RotationResponse::from)
+                .toList();
+    }
+
+    public List<RotationResponse> getMyApplications(AccountContext accountContext) {
+        List<Rotation> applications = rotationRepository.findByMemberId(accountContext.getMemberId());
+
+        return applications.stream()
+                .map(RotationResponse::from)
+                .toList();
+    }
+
+    public List<RotationEventResponse> getEvents(EventStatus status) {
+        List<RotationEvent> events;
+        if(status == null){
+            events = rotationEventRepository.findAll();
+        }
+        else {
+            events = rotationEventRepository.findByStatus(status);
+        }
+
+        return events.stream()
+                .map(RotationEventResponse::from)
+                .toList();
+    }
+
+    public List<RotationResponse> getApprovedMembers(Long eventId) {
+        List<Rotation> applications = rotationRepository.findByEventIdAndApproved(eventId);
+
         return applications.stream()
                 .map(RotationResponse::from)
                 .toList();

@@ -1,5 +1,6 @@
 package com.oceandate.backend.domain.matching.dto;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.oceandate.backend.domain.matching.entity.OneToOne;
 import com.oceandate.backend.domain.matching.entity.Rotation;
 import com.oceandate.backend.domain.matching.enums.ApplicationStatus;
@@ -11,10 +12,8 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
 @Builder
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class RotationResponse {
     private Long id;
     private ApplicationStatus status;

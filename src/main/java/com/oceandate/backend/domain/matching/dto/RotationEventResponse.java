@@ -1,4 +1,6 @@
 package com.oceandate.backend.domain.matching.dto;
+import com.oceandate.backend.domain.matching.entity.Rotation;
+import com.oceandate.backend.domain.matching.entity.RotationEvent;
 import lombok.*;
 
 import java.time.LocalDateTime;
@@ -18,5 +20,18 @@ public class RotationEventResponse {
     private String location;
     private Integer amount;
     private String description;
+
+    public static RotationEventResponse from(RotationEvent rotationEvent) {
+        return RotationEventResponse.builder()
+                .eventId(rotationEvent.getId())
+                .eventName(rotationEvent.getEventName())
+                .eventDateTime(rotationEvent.getEventDateTime())
+                .maleCapacity(rotationEvent.getMaleCapacity())
+                .femaleCapacity(rotationEvent.getFemaleCapacity())
+                .ageRange(rotationEvent.getAgeRange())
+                .location(rotationEvent.getLocation())
+                .description(rotationEvent.getDescription())
+                .build();
+    }
 }
 

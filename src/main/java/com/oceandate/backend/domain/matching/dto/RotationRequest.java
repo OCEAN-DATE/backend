@@ -8,7 +8,6 @@ import lombok.*;
 @AllArgsConstructor
 @Builder
 public class RotationRequest {
-
     private Long eventId;
     private String job;
     private String introduction;
