@@ -24,7 +24,15 @@ public class CookieUtil {
         cookie.setHttpOnly(true);
         cookie.setSecure(secureMode);
         cookie.setMaxAge(maxAge);
-        cookie.setDomain(cookieDomain);
+
+        // 크로스 도메인 환경에서는 domain 설정하지 않음
+        if (cookieDomain != null && !cookieDomain.isEmpty()) {
+            cookie.setDomain(cookieDomain);
+        }
+
+        // SameSite 속성 설정 (크로스 도메인 쿠키 전송을 위해)
+        cookie.setAttribute("SameSite", "None");
+
         response.addCookie(cookie);
     }
 
