@@ -27,8 +27,8 @@ spring:
             authorization-grant-type: authorization_code
             client-name: Kakao
             scope:
-            - profile_nickname
-            - account_email
+              - profile_nickname
+              - account_email
         provider:
           kakao:
             authorization-uri: https://kauth.kakao.com/oauth/authorize
@@ -42,11 +42,11 @@ logging:
     org.springframework.boot.autoconfigure.security: DEBUG
 
 cookie:
-  domain: localhost
+  domain:  # 크로스 도메인 환경에서는 domain 설정하지 않음
   max-age: 604800
   path: /
   http-only: true
-  secure-mode: false
+  secure-mode: true
 
 springdoc:
   api-docs:
