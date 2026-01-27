@@ -52,7 +52,7 @@ public class RotationController {
     }
 
     @Operation(summary = "로테이션 소개팅 이벤트별 신청서 목록 조회 (관리자)")
-    @GetMapping("/{eventId}/applications")
+    @GetMapping("/events/{eventId}/applications")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<RotationResponse>> getApplications(
             @PathVariable Long eventId,
@@ -62,8 +62,18 @@ public class RotationController {
         return ResponseEntity.ok(response);
     }
 
+    @Operation(summary = "로테이션 소개팅 신청서 상세 조회 (관리자)")
+    @GetMapping("/applications/{applicationId}")
+    @PreAuthorize(("hasRole('ADMIN')"))
+    public ResponseEntity<RotationResponse> getApplicationDetail(
+            @PathVariable Long applicationId
+    ){
+        RotationResponse response = rotationService.getApplicationDetail(applicationId);
+        return ResponseEntity.ok(response);
+    }
+
     @Operation(summary = "로테이션 소개팅 신청서 상태 변경 (관리자)")
-    @PatchMapping("applications/{id}/status")
+    @PatchMapping("/applications/{id}/status")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> updateStatus(
         @PathVariable Long id, @RequestParam ApplicationStatus status){
@@ -81,6 +91,7 @@ public class RotationController {
         return ResponseEntity.ok(applications);
     }
 
+
     @Operation(summary = "로테이션 소개팅 이벤트 목록 조회")
     @GetMapping("/events")
     public ResponseEntity<List<RotationEventResponse>> getEvents(
@@ -92,11 +103,22 @@ public class RotationController {
     }
 
     @Operation(summary = "로테이션 소개팅 별 승인된 신청 조회")
-    @GetMapping("/{eventId}/approved")
+    @GetMapping("/events/{eventId}/approved")
     public ResponseEntity<List<RotationResponse>> getApprovedMembers(
             @PathVariable Long eventId
     ){
         List<RotationResponse> response = rotationService.getApprovedMembers(eventId);
         return ResponseEntity.ok(response);
+    }
+
+    @Operation(summary = "로테이션 신청 취소")
+    @PatchMapping("/events/{eventId}/applications/{applicationId}/cancel")
+    public ResponseEntity<String> cancelApplication(
+            @PathVariable Long eventId,
+            @PathVariable Long applicationId,
+            @AuthenticationPrincipal AccountContext accountContext
+    ){
+        rotationService.cancelApplications(eventId, applicationId, accountContext);
+        return ResponseEntity.ok("신청이 취소되었습니다.");
     }
 }

@@ -2,6 +2,7 @@ package com.oceandate.backend.domain.matching.service;
 
 import com.oceandate.backend.domain.matching.dto.RotationEventResponse;
 import com.oceandate.backend.domain.matching.dto.RotationResponse;
+import com.oceandate.backend.domain.matching.dto.UserInfo;
 import com.oceandate.backend.domain.matching.entity.Rotation;
 import com.oceandate.backend.domain.matching.dto.RotationRequest;
 import com.oceandate.backend.domain.matching.entity.RotationEvent;
@@ -68,6 +69,7 @@ public class RotationService {
                 .introduction(request.getIntroduction())
                 .orderId(orderId)
                 .status(ApplicationStatus.PAYMENT_PENDING)
+                .confirmedDate(event.getEventDateTime())
                 .build();
 
         rotationRepository.save(application);
@@ -76,8 +78,6 @@ public class RotationService {
                 .id(application.getId())
                 .orderId(orderId)
                 .amount(event.getAmount())
-                .orderName(event.getEventName())
-                .customerEmail(user.getEmail())
                 .build();
     }
 
@@ -133,5 +133,32 @@ public class RotationService {
         return applications.stream()
                 .map(RotationResponse::from)
                 .toList();
+    }
+
+    public RotationResponse getApplicationDetail(Long applicationId) {
+        Rotation application = rotationRepository.findById(applicationId)
+                .orElseThrow(() -> new CustomException(ErrorCode.APPLICATION_NOT_FOUND));
+
+        UserInfo applicantInfo = UserInfo.builder()
+                .userId(application.getMember().getId())
+                .name(application.getMember().getName())
+                .email(application.getMember().getEmail())
+                .job(application.getJob())
+                .introduction(application.getIntroduction())
+                .build();
+
+        return RotationResponse.fromDetail(application, applicantInfo);
+    }
+
+    @Transactional
+    public void cancelApplications(Long eventId, Long applicationId, AccountContext accountContext) {
+        Rotation application = rotationRepository.findByEventIdAndApplicationId(eventId, applicationId)
+                .orElseThrow(() -> new CustomException(ErrorCode.APPLICATION_NOT_FOUND));
+
+        if(application.getMember().getId().equals(accountContext.getMemberId())){
+            throw new CustomException(ErrorCode.ACCESS_DENIED);
+        }
+
+        application.setStatus(ApplicationStatus.CANCELLED);
     }
 }

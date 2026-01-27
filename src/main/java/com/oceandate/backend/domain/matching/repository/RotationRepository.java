@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 
+import java.lang.ScopedValue;
 import java.util.List;
 import java.util.Optional;
 
@@ -34,4 +35,7 @@ public interface RotationRepository extends JpaRepository<Rotation, Long> {
 
     @Query("SELECT o FROM Rotation o WHERE o.event.id = :eventId AND o.status = :status")
     List<Rotation> findByEventIdAndStatus(ApplicationStatus status);
+
+    @Query("SELECT o FROM Rotation o WHERE o.id = :applicationId AND o.event.id =: eventId")
+    Optional<Rotation> findByEventIdAndApplicationId(Long eventId, Long applicationId);
 }
