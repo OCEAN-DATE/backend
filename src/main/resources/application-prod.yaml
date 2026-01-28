@@ -81,11 +81,11 @@ logging:
     org.springframework.boot.autoconfigure.security: DEBUG
 
 cookie:
-  domain: localhost
+  domain:
   max-age: 604800
   path: /
   http-only: true
-  secure-mode: false
+  secure-mode: true
 
 springdoc:
   api-docs:
