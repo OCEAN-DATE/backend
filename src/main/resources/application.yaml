@@ -46,7 +46,7 @@ cookie:
   max-age: 604800
   path: /
   http-only: true
-  secure-mode: true
+  secure-mode: false  # 로컬 HTTP 환경
 
 springdoc:
   api-docs:

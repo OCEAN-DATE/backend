@@ -30,8 +30,13 @@ public class CookieUtil {
             cookie.setDomain(cookieDomain);
         }
 
-        // SameSite 속성 설정 (크로스 도메인 쿠키 전송을 위해)
-        cookie.setAttribute("SameSite", "None");
+        // HTTPS 환경에서만 SameSite=None 설정 (HTTP에서는 브라우저가 거부)
+        if (secureMode) {
+            cookie.setAttribute("SameSite", "None");
+        } else {
+            // HTTP 환경에서는 SameSite=Lax (크로스 사이트 제한적 허용)
+            cookie.setAttribute("SameSite", "Lax");
+        }
 
         response.addCookie(cookie);
     }
