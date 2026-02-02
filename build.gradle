@@ -56,6 +56,11 @@ dependencies {
 
 	// macOS 환경에서 Netty 네이티브 라이브러리 에러 해결
 	runtimeOnly 'io.netty:netty-resolver-dns-native-macos:4.1.100.Final:osx-aarch_64'
+
+	//AWS S3
+	implementation 'org.springframework.cloud:spring-cloud-starter-aws:2.2.6.RELEASE'
+	implementation 'commons-io:commons-io:2.6'
+	implementation 'commons-fileupload:commons-fileupload:1.4'
 }
 
 tasks.named('test') {

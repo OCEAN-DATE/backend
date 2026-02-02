@@ -15,9 +15,15 @@ import org.springframework.stereotype.Service;
 public class RotationEventService {
 
     private final RotationEventRepository rotationEventRepository;
+    private final S3Uploader s3Uploader;
 
     @Transactional
     public RotationEventResponse createEvent(RotationEventRequest request){
+        String imageUrl = null;
+        if(request.getImage() != null && !request.getImage().isEmpty()){
+            imageUrl = s3Uploader.upload(request.getImage());
+        }
+
         RotationEvent rotationEvent = RotationEvent.builder()
                 .eventName(request.getEventName())
                 .eventDateTime(request.getEventDateTime())
@@ -27,6 +33,7 @@ public class RotationEventService {
                 .location(request.getLocation())
                 .amount(request.getAmount())
                 .description(request.getDescription())
+                .s3Url(imageUrl)
                 .status(EventStatus.OPEN)
                 .build();
 

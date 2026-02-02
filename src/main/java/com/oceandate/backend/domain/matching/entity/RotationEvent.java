@@ -53,6 +53,9 @@ public class RotationEvent {
     @Column(columnDefinition = "TEXT")
     private String description;
 
+    @Column(name = "s3_url")
+    private String s3Url;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private EventStatus status;

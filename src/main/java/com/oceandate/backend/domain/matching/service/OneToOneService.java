@@ -10,10 +10,15 @@ import com.oceandate.backend.domain.matching.enums.EventStatus;
 import com.oceandate.backend.domain.matching.repository.OneToOneEventRepository;
 import com.oceandate.backend.domain.matching.repository.OneToOneMatchingRepository;
 import com.oceandate.backend.domain.matching.repository.OneToOneRepository;
+import com.oceandate.backend.domain.payment.dto.PaymentCancelRequest;
+import com.oceandate.backend.domain.payment.dto.RefundResponse;
+import com.oceandate.backend.domain.payment.service.PaymentService;
+import com.oceandate.backend.domain.payment.util.RefundPolicy;
 import com.oceandate.backend.domain.user.entity.Member;
 import com.oceandate.backend.domain.user.repository.MemberRepository;
 import com.oceandate.backend.global.exception.CustomException;
 import com.oceandate.backend.global.exception.constant.ErrorCode;
+import com.oceandate.backend.global.jwt.AccountContext;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -34,6 +39,7 @@ public class OneToOneService {
     private final OneToOneEventRepository oneToOneEventRepository;
     private final OneToOneMatchingRepository matchingRepository;
     private final MemberRepository memberRepository;
+    private final PaymentService paymentService;
 
     @Transactional
     public void createApplication(Long userId, OneToOneRequest request){
@@ -138,5 +144,65 @@ public class OneToOneService {
                 .orElseThrow(() -> new CustomException(ErrorCode.EVENT_NOT_FOUND));
 
         oneToOneEventRepository.deleteById(event.getId());
+    }
+
+    @Transactional
+    public RefundResponse cancelApplication(
+            Long applicationId,
+            String userCancelReason,
+            AccountContext accountContext
+    ) {
+        OneToOne application = oneToOneRepository.findById(applicationId)
+                .orElseThrow(() -> new CustomException(ErrorCode.APPLICATION_NOT_FOUND));
+
+        if (!application.getMember().getId().equals(accountContext.getMemberId())) {
+            throw new CustomException(ErrorCode.ACCESS_DENIED);
+        }
+
+        if (!application.getStatus().isCancellable()) {
+            throw new CustomException(ErrorCode.INVALID_CANCEL_STATUS);
+        }
+
+        int refundAmount = 0;
+        int refundRate = 0;
+        String refundPolicyReason = "결제 전 취소";
+
+        if (application.getStatus().isRefundRequired()) {
+            LocalDateTime matchedAt = application.getApprovedAt();
+            if (matchedAt == null) {
+                matchedAt = application.getCreatedAt();
+            }
+
+            RefundPolicy.RefundAmount refund = RefundPolicy.calculateOneToOneRefund(
+                    matchedAt,
+                    LocalDateTime.now(),
+                    application.getAmount()
+            );
+
+            refundAmount = refund.getAmount();
+            refundRate = refund.getRate();
+            refundPolicyReason = refund.getReason();
+
+            if (refundAmount > 0) {
+                PaymentCancelRequest cancelRequest = PaymentCancelRequest.builder()
+                        .paymentKey(application.getPaymentKey())
+                        .cancelReason(refundPolicyReason)
+                        .cancelAmount(refundAmount)
+                        .build();
+
+                paymentService.cancelPayment(accountContext, cancelRequest);
+            }
+        }
+
+        application.setStatus(ApplicationStatus.CANCELLED);
+        application.setCancelledAt(LocalDateTime.now());
+        application.setCancelReason(userCancelReason != null ? userCancelReason : "사용자 요청");
+        application.setRefundAmount(refundAmount);
+
+        if (refundAmount > 0) {
+            application.setRefundedAt(LocalDateTime.now());
+        }
+
+        return RefundResponse.of(applicationId, refundAmount, refundRate, refundPolicyReason);
     }
 }

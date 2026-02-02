@@ -1,11 +1,13 @@
 package com.oceandate.backend.domain.matching.dto;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.oceandate.backend.domain.matching.entity.OneToOne;
 import lombok.Builder;
 import lombok.Getter;
 
 @Getter
 @Builder
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class UserInfo {
     private Long userId;
     private String name;

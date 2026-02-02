@@ -19,13 +19,20 @@ import java.util.stream.Collectors;
 public class OneToOneEventService {
 
     private final OneToOneEventRepository oneToOneEventRepository;
+    private final S3Uploader s3Uploader;
 
     public OneToOneEvent createEvent(OneToOneEventRequest request) {
+        String imageUrl = null;
+        if(request.getImage() != null && !request.getImage().isEmpty()){
+            imageUrl = s3Uploader.upload(request.getImage());
+        }
+
         OneToOneEvent event = OneToOneEvent.builder()
                 .eventName(request.getEventName())
                 .location(request.getLocation())
                 .amount(request.getAmount())
                 .description(request.getDescription())
+                .s3Url(imageUrl)
                 .status(EventStatus.OPEN)
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
