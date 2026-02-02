@@ -2,10 +2,12 @@ package com.oceandate.backend.domain.review.service;
 
 import com.oceandate.backend.domain.matching.entity.OneToOne;
 import com.oceandate.backend.domain.matching.entity.Rotation;
+import com.oceandate.backend.domain.matching.entity.Travel;
 import com.oceandate.backend.domain.matching.enums.ApplicationStatus;
 import com.oceandate.backend.domain.matching.enums.MatchingType;
 import com.oceandate.backend.domain.matching.repository.OneToOneRepository;
 import com.oceandate.backend.domain.matching.repository.RotationRepository;
+import com.oceandate.backend.domain.matching.repository.TravelRepository;
 import com.oceandate.backend.domain.review.dto.ReviewCreateRequest;
 import com.oceandate.backend.domain.review.dto.ReviewResponse;
 import com.oceandate.backend.domain.review.dto.ReviewUpdateRequest;
@@ -32,6 +34,7 @@ public class ReviewService {
     private final MemberRepository memberRepository;
     private final OneToOneRepository oneToOneRepository;
     private final RotationRepository rotationRepository;
+    private final TravelRepository travelRepository;
 
     /**
      * 리뷰 작성 (매칭 이벤트 자체에 대한 리뷰)
@@ -81,6 +84,8 @@ public class ReviewService {
             validateOneToOneMatching(writerId, request);
         } else if (request.getMatchingType() == MatchingType.ROTATION) {
             validateRotationMatching(writerId, request);
+        } else if (request.getMatchingType() == MatchingType.TRAVEL) {
+            validateTravelMatching(writerId, request);
         } else {
             throw new IllegalArgumentException("지원하지 않는 매칭 타입입니다.");
         }
@@ -128,6 +133,29 @@ public class ReviewService {
 
         // 작성자가 해당 매칭의 참여자인지 확인
         if (!rotation.getMember().getId().equals(writerId)) {
+            throw new IllegalArgumentException("해당 매칭의 참여자만 리뷰를 작성할 수 있습니다.");
+        }
+    }
+
+    /**
+     * 여행 매칭 검증
+     */
+    private void validateTravelMatching(Long writerId, ReviewCreateRequest request) {
+        Travel travel = travelRepository.findById(request.getMatchingId())
+                .orElseThrow(() -> new IllegalArgumentException("매칭 정보를 찾을 수 없습니다."));
+
+        // 노쇼 확인
+        if (travel.getStatus() == ApplicationStatus.NO_SHOW) {
+            throw new IllegalStateException("노쇼한 매칭에는 리뷰를 작성할 수 없습니다.");
+        }
+
+        // 매칭 상태 확인
+        if (travel.getStatus() != ApplicationStatus.COMPLETED) {
+            throw new IllegalStateException("완료된 매칭에 대해서만 리뷰를 작성할 수 있습니다.");
+        }
+
+        // 작성자가 해당 매칭의 참여자인지 확인
+        if (!travel.getMember().getId().equals(writerId)) {
             throw new IllegalArgumentException("해당 매칭의 참여자만 리뷰를 작성할 수 있습니다.");
         }
     }
@@ -237,6 +265,10 @@ public class ReviewService {
             Rotation rotation = rotationRepository.findById(matchingId)
                     .orElseThrow(() -> new IllegalArgumentException("매칭 정보를 찾을 수 없습니다."));
             return rotation.getApprovedAt();
+        } else if (matchingType == MatchingType.TRAVEL) {
+            Travel travel = travelRepository.findById(matchingId)
+                    .orElseThrow(() -> new IllegalArgumentException("매칭 정보를 찾을 수 없습니다."));
+            return travel.getApprovedAt();
         }
         return null;
     }

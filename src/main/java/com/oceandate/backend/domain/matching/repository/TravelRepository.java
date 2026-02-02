@@ -1,0 +1,53 @@
+package com.oceandate.backend.domain.matching.repository;
+
+import com.oceandate.backend.domain.matching.entity.Travel;
+import com.oceandate.backend.domain.matching.entity.TravelEvent;
+import com.oceandate.backend.domain.matching.enums.ApplicationStatus;
+import com.oceandate.backend.domain.user.entity.Member;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
+
+public interface TravelRepository extends JpaRepository<Travel, Long> {
+    List<Travel> findByMember(Member member);
+
+    Optional<Travel> findByMemberAndEvent(Member member, TravelEvent event);
+
+    List<Travel> findByEvent(TravelEvent event);
+
+    Page<Travel> findByEventAndStatus(
+            TravelEvent event,
+            ApplicationStatus status,
+            Pageable pageable);
+
+    List<Travel> findByEventAndStatus(
+            TravelEvent event,
+            ApplicationStatus status);
+
+    boolean existsByMemberAndEvent(Member member, TravelEvent event);
+
+    long countByStatus(ApplicationStatus status);
+
+    long countByEventAndStatus(TravelEvent event, ApplicationStatus status);
+
+    @Query("SELECT t FROM Travel t WHERE t.member = :member AND t.event = :event " +
+            "AND t.status = :status AND t.createdAt >= :since")
+    Optional<Travel> findByMemberAndEventAndStatusAndCreatedAtAfter(
+            @Param("member") Member member,
+            @Param("event") TravelEvent event,
+            @Param("status") ApplicationStatus status,
+            @Param("since") LocalDateTime since
+    );
+
+    @Query("SELECT t FROM Travel t WHERE t.status = :status AND t.createdAt < :before")
+    List<Travel> findByStatusAndCreatedAtBefore(
+            @Param("status") ApplicationStatus status,
+            @Param("before") LocalDateTime before
+    );
+}
