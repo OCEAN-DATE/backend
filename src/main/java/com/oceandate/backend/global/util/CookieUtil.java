@@ -24,7 +24,20 @@ public class CookieUtil {
         cookie.setHttpOnly(true);
         cookie.setSecure(secureMode);
         cookie.setMaxAge(maxAge);
-        cookie.setDomain(cookieDomain);
+
+        // 크로스 도메인 환경에서는 domain 설정하지 않음
+        if (cookieDomain != null && !cookieDomain.isEmpty()) {
+            cookie.setDomain(cookieDomain);
+        }
+
+        // HTTPS 환경에서만 SameSite=None 설정 (HTTP에서는 브라우저가 거부)
+        if (secureMode) {
+            cookie.setAttribute("SameSite", "None");
+        } else {
+            // HTTP 환경에서는 SameSite=Lax (크로스 사이트 제한적 허용)
+            cookie.setAttribute("SameSite", "Lax");
+        }
+
         response.addCookie(cookie);
     }
 

@@ -1,26 +1,60 @@
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, prometheus, metrics
+      base-path: /actuator
+
+  endpoint:
+    health:
+      show-details: always
+
+  prometheus:
+    metrics:
+      export:
+        enabled: true
+
+  metrics:
+    tags:
+      application: monitoring
+
+    enable:
+      jvm: true
+      hikaricp: true
+
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+
 spring:
   application:
     name: ocean-date-backend
 
-  servlet:
-    multipart:
-      max-file-size: 10MB
-      max-request-size: 10MB
-
-  profiles:
-    include: secret
-
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://localhost:3306/ocean_date?useSSL=false&useUnicode=true&serverTimezone=Asia/Seoul&allowPublicKeyRetrieval=true
+    url: ${JDBC_URL}
 
   jpa:
     hibernate:
       ddl-auto: none
       naming:
-        physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
+        physical-strategy: org.hibernate.boot.model.naming.CamelCaseToUnderscoresNamingStrategy
     show-sql: true
     open-in-view: false
+  mail:
+    port: 587
+    host: smtp.gmail.com
+    properties:
+      mail:
+        smtp:
+          auth: true
+          timeout: 5000
+          starttls:
+            enable: true
+
+  notification:
+    dispatch:
+      fixedDelayMs: 60000
 
   security:
     oauth2:
@@ -28,12 +62,12 @@ spring:
         registration:
           kakao:
             client-authentication-method: client_secret_post
-            redirect-uri: http://localhost:8080/login/oauth2/code/kakao
+            redirect-uri: ${KAKAO_REDIRECT_URI}
             authorization-grant-type: authorization_code
             client-name: Kakao
             scope:
-              - profile_nickname
-              - account_email
+            - profile_nickname
+            - account_email
         provider:
           kakao:
             authorization-uri: https://kauth.kakao.com/oauth/authorize
@@ -47,11 +81,11 @@ logging:
     org.springframework.boot.autoconfigure.security: DEBUG
 
 cookie:
-  domain:  # 크로스 도메인 환경에서는 domain 설정하지 않음
+  domain:
   max-age: 604800
   path: /
   http-only: true
-  secure-mode: false  # 로컬 HTTP 환경
+  secure-mode: true
 
 springdoc:
   api-docs:
@@ -67,17 +101,3 @@ toss:
   payments:
     secret-key: ${TOSS_SECRET_KEY}
     base-url: https://api.tosspayments.com/v1/payments
-
-cloud:
-  aws:
-    credentials:
-      accessKey: ${AWS_ACCESS_KEY_ID}
-      secretKey: ${AWS_SECRET_ACCESS_KEY}
-    region:
-      static: ap-northeast-2
-    s3:
-      bucket:
-        name: ${BUCKET_NAME}
-    stack:
-      auto: false
-
