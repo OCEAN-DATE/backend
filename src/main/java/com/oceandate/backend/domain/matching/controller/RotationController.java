@@ -5,6 +5,7 @@ import com.oceandate.backend.domain.matching.enums.ApplicationStatus;
 import com.oceandate.backend.domain.matching.enums.EventStatus;
 import com.oceandate.backend.domain.matching.service.RotationEventService;
 import com.oceandate.backend.domain.matching.service.RotationService;
+import com.oceandate.backend.domain.payment.dto.RefundResponse;
 import com.oceandate.backend.domain.user.entity.Member;
 import com.oceandate.backend.global.jwt.AccountContext;
 import io.swagger.v3.oas.annotations.Operation;
@@ -40,7 +41,7 @@ public class RotationController {
         return ResponseEntity.ok(response);
     }
 
-    @Operation(summary = "로테이션 소개팅 이벤트 생성(관리자)")
+    @Operation(summary = "[관리자] 로테이션 소개팅 이벤트 생성", description = "이미지는 선택사항입니다. 이미지를 보내지 않을 경우 필드를 비활성화하거나 제외해주세요.")
     @PostMapping(value = "/event", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<RotationEventResponse> createEvent(
@@ -51,7 +52,7 @@ public class RotationController {
         return ResponseEntity.ok(response);
     }
 
-    @Operation(summary = "로테이션 소개팅 이벤트별 신청서 목록 조회 (관리자)")
+    @Operation(summary = "[관리자] 로테이션 소개팅 이벤트별 신청서 목록 조회")
     @GetMapping("/events/{eventId}/applications")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<RotationResponse>> getApplications(
@@ -62,7 +63,7 @@ public class RotationController {
         return ResponseEntity.ok(response);
     }
 
-    @Operation(summary = "로테이션 소개팅 신청서 상세 조회 (관리자)")
+    @Operation(summary = "[관리자] 로테이션 소개팅 신청서 상세 조회")
     @GetMapping("/applications/{applicationId}")
     @PreAuthorize(("hasRole('ADMIN')"))
     public ResponseEntity<RotationResponse> getApplicationDetail(
@@ -72,7 +73,7 @@ public class RotationController {
         return ResponseEntity.ok(response);
     }
 
-    @Operation(summary = "로테이션 소개팅 신청서 상태 변경 (관리자)")
+    @Operation(summary = "[관리자] 로테이션 소개팅 신청서 상태 변경")
     @PatchMapping("/applications/{id}/status")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> updateStatus(
@@ -102,7 +103,7 @@ public class RotationController {
         return ResponseEntity.ok(response);
     }
 
-    @Operation(summary = "로테이션 소개팅 별 승인된 신청 조회")
+    @Operation(summary = "[관리자] 로테이션 소개팅 별 승인된 신청 조회")
     @GetMapping("/events/{eventId}/approved")
     public ResponseEntity<List<RotationResponse>> getApprovedMembers(
             @PathVariable Long eventId
@@ -113,12 +114,13 @@ public class RotationController {
 
     @Operation(summary = "로테이션 신청 취소")
     @PatchMapping("/events/{eventId}/applications/{applicationId}/cancel")
-    public ResponseEntity<String> cancelApplication(
+    public ResponseEntity<RefundResponse> cancelApplication(
             @PathVariable Long eventId,
             @PathVariable Long applicationId,
+            @RequestBody CancelRequest request,
             @AuthenticationPrincipal AccountContext accountContext
     ){
-        rotationService.cancelApplications(eventId, applicationId, accountContext);
-        return ResponseEntity.ok("신청이 취소되었습니다.");
+        RefundResponse response = rotationService.cancelApplications(eventId, applicationId, request.getCancelReason(), accountContext);
+        return ResponseEntity.ok(response);
     }
 }

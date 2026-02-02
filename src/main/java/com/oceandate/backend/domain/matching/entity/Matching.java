@@ -58,6 +58,18 @@ public abstract class Matching {
     @Column(nullable = false)
     protected LocalDateTime updatedAt;
 
+    @Column
+    private LocalDateTime cancelledAt;
+
+    @Column
+    private String cancelReason;
+
+    @Column
+    private Integer refundAmount;
+
+    @Column
+    private LocalDateTime refundedAt;
+
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
@@ -70,5 +82,15 @@ public abstract class Matching {
     @PreUpdate
     protected void onUpdate() {
         updatedAt = LocalDateTime.now();
+    }
+
+    public void cancel(String reason, Integer refundAmount) {
+        this.status = ApplicationStatus.CANCELLED;
+        this.cancelledAt = LocalDateTime.now();
+        this.cancelReason = reason;
+        this.refundAmount = refundAmount;
+        if (refundAmount != null && refundAmount > 0) {
+            this.refundedAt = LocalDateTime.now();
+        }
     }
 }

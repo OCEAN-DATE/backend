@@ -10,6 +10,10 @@ import com.oceandate.backend.domain.matching.enums.ApplicationStatus;
 import com.oceandate.backend.domain.matching.enums.EventStatus;
 import com.oceandate.backend.domain.matching.repository.RotationEventRepository;
 import com.oceandate.backend.domain.matching.repository.RotationRepository;
+import com.oceandate.backend.domain.payment.dto.PaymentCancelRequest;
+import com.oceandate.backend.domain.payment.dto.RefundResponse;
+import com.oceandate.backend.domain.payment.service.PaymentService;
+import com.oceandate.backend.domain.payment.util.RefundPolicy;
 import com.oceandate.backend.domain.user.entity.Member;
 import com.oceandate.backend.domain.user.entity.Sex;
 import com.oceandate.backend.domain.user.repository.MemberRepository;
@@ -18,6 +22,7 @@ import com.oceandate.backend.global.exception.constant.ErrorCode;
 import com.oceandate.backend.global.jwt.AccountContext;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.parameters.P;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -32,6 +37,7 @@ public class RotationService {
     private final RotationRepository rotationRepository;
     private final RotationEventRepository rotationEventRepository;
     private final MemberRepository memberRepository;
+    private final PaymentService paymentService;
 
     @Transactional
     public RotationResponse createApplication(
@@ -151,14 +157,54 @@ public class RotationService {
     }
 
     @Transactional
-    public void cancelApplications(Long eventId, Long applicationId, AccountContext accountContext) {
+    public RefundResponse cancelApplications(Long eventId, Long applicationId, String cancelReason, AccountContext accountContext) {
         Rotation application = rotationRepository.findByEventIdAndApplicationId(eventId, applicationId)
                 .orElseThrow(() -> new CustomException(ErrorCode.APPLICATION_NOT_FOUND));
 
-        if(application.getMember().getId().equals(accountContext.getMemberId())){
+        if(!application.getMember().getId().equals(accountContext.getMemberId())){
             throw new CustomException(ErrorCode.ACCESS_DENIED);
         }
 
+        if(!application.getStatus().isCancellable()){
+            throw new CustomException(ErrorCode.INVALID_CANCEL_STATUS);
+        }
+
+        int refundAmount = 0;
+        int refundRate = 0;
+        String refundReason = "결제 전 취소";
+
+        if(application.getStatus().isRefundRequired()) {
+            RotationEvent event = application.getEvent();
+            RefundPolicy.RefundAmount refund = RefundPolicy.calculateRotationRefund(
+                    event.getEventDateTime(),
+                    LocalDateTime.now(),
+                    application.getAmount()
+            );
+
+            refundAmount = refund.getAmount();
+            refundRate = refund.getRate();
+            refundReason = refund.getReason();
+
+            if(refundAmount > 0){
+                PaymentCancelRequest cancelRequest = PaymentCancelRequest.builder()
+                                        .paymentKey(application.getPaymentKey())
+                                        .cancelReason(refundReason)
+                                        .cancelAmount(refundAmount)
+                                        .build();
+
+                paymentService.cancelPayment(accountContext, cancelRequest);
+            }
+        }
+
         application.setStatus(ApplicationStatus.CANCELLED);
+        application.setCancelledAt(LocalDateTime.now());
+        application.setCancelReason(cancelReason != null ? cancelReason : "사용자 요청");
+        application.setRefundAmount(refundAmount);
+
+        if (refundAmount > 0) {
+            application.setRefundedAt(LocalDateTime.now());
+        }
+
+        return RefundResponse.of(applicationId, refundAmount, refundRate, refundReason);
     }
 }

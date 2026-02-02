@@ -21,11 +21,4 @@ public class Rotation extends Matching{
 
     @Column
     private LocalDateTime approvedAt;
-
-    @Column
-    @Builder.Default
-    private Boolean refunded = false;
-
-    @Column
-    private LocalDateTime refundedAt;
 }
