@@ -2,9 +2,14 @@ package com.oceandate.backend.domain.matching.service;
 
 import com.oceandate.backend.domain.matching.dto.OneToOneEventRequest;
 import com.oceandate.backend.domain.matching.dto.OneToOneEventResponse;
+import com.oceandate.backend.domain.matching.entity.OneToOne;
 import com.oceandate.backend.domain.matching.entity.OneToOneEvent;
+import com.oceandate.backend.domain.matching.enums.ApplicationStatus;
 import com.oceandate.backend.domain.matching.enums.EventStatus;
 import com.oceandate.backend.domain.matching.repository.OneToOneEventRepository;
+import com.oceandate.backend.domain.matching.repository.OneToOneRepository;
+import com.oceandate.backend.global.exception.CustomException;
+import com.oceandate.backend.global.exception.constant.ErrorCode;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -18,6 +23,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class OneToOneEventService {
 
+    private final OneToOneRepository oneToOneRepository;
     private final OneToOneEventRepository oneToOneEventRepository;
     private final S3Uploader s3Uploader;
 
@@ -59,5 +65,23 @@ public class OneToOneEventService {
         return response.stream()
                 .map(OneToOneEventResponse::from)
                 .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public void deleteEvent(Long eventId) {
+        OneToOneEvent event = oneToOneEventRepository.findById(eventId)
+                .orElseThrow(() -> new CustomException(ErrorCode.EVENT_NOT_FOUND));
+
+        List<OneToOne> applications = oneToOneRepository.findByEventIdAndStatus(eventId, ApplicationStatus.PAYMENT_COMPLETED);
+        event.setStatus(EventStatus.DELETED);
+        event.setDeletedAt(LocalDateTime.now());
+    }
+
+    @Transactional
+    public void updateEventStatus(Long eventId, EventStatus status){
+        OneToOneEvent event = oneToOneEventRepository.findById(eventId)
+                .orElseThrow(() -> new CustomException(ErrorCode.EVENT_NOT_FOUND));
+
+        event.setStatus(status);
     }
 }

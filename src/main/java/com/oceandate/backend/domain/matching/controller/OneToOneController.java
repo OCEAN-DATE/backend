@@ -138,8 +138,17 @@ public class OneToOneController {
     //    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/event/{eventId}")
     public ResponseEntity<String> deleteEvent(@PathVariable Long eventId){
-        oneToOneService.deleteEvent(eventId);
+        oneToOneEventService.deleteEvent(eventId);
         return ResponseEntity.ok("이벤트가 삭제되었습니다.");
+    }
+
+    @Operation(summary = "[관리자] 일대일 소개팅 이벤트 상태 변경")
+    @PreAuthorize("hasRole('ADMIN')")
+    @PatchMapping("/event/{eventId}")
+    public ResponseEntity<String> updateEventStatus(
+            @PathVariable Long eventId, @RequestParam EventStatus status){
+        oneToOneEventService.updateEventStatus(eventId, status);
+        return ResponseEntity.ok("이벤트 상태가 변경되었습니다. ");
     }
 
     @Operation(summary = "[관리자] 일대일 소개팅 매칭")
@@ -160,7 +169,7 @@ public class OneToOneController {
     }
 
     @Operation(summary = "일대일 신청 취소")
-    @DeleteMapping("/applications/{applicationId}")
+    @PatchMapping("/applications/{applicationId}")
     public ResponseEntity<RefundResponse> cancelApplication(
             @PathVariable Long applicationId,
             @RequestBody(required = false) CancelRequest request,
@@ -172,6 +181,15 @@ public class OneToOneController {
                 cancelReason,
                 accountContext
         );
+        return ResponseEntity.ok(response);
+    }
+
+    @Operation(summary = "일대일 소개팅 이전 신청서 불러오기", description = "이전에 신청한 내역이 있는 경우 가장 최근 신청서를 불러옵니다.")
+    @GetMapping("/applications/previous")
+    public ResponseEntity<OneToOneResponse> getPreviousApplication(
+            @AuthenticationPrincipal AccountContext accountContext
+    ){
+        OneToOneResponse response = oneToOneService.getPreviousApplication(accountContext);
         return ResponseEntity.ok(response);
     }
 }

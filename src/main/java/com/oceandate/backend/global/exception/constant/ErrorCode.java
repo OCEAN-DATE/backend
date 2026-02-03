@@ -30,6 +30,7 @@ public enum ErrorCode {
     MALE_CAPACITY_FULL("EVENT_400", "남성 정원이 마감되었습니다."),
     FEMALE_CAPACITY_FULL("EVENT_400", "여성 정원이 마감되었습니다."),
     EVENT_FULL("EVENT_400", "정원이 마감되었습니다."),
+    INVALID_DELETE_STATUS("EVENT_400", "삭제 가능한 상태가 아닙니다."),
 
     // 신청
     APPLICATION_NOT_FOUND("APPLICATION_404", "신청을 찾을 수 없습니다."),

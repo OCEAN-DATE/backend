@@ -1,10 +1,7 @@
 package com.oceandate.backend.domain.matching.service;
 
-import com.oceandate.backend.domain.matching.dto.RotationEventResponse;
-import com.oceandate.backend.domain.matching.dto.RotationResponse;
-import com.oceandate.backend.domain.matching.dto.UserInfo;
+import com.oceandate.backend.domain.matching.dto.*;
 import com.oceandate.backend.domain.matching.entity.Rotation;
-import com.oceandate.backend.domain.matching.dto.RotationRequest;
 import com.oceandate.backend.domain.matching.entity.RotationEvent;
 import com.oceandate.backend.domain.matching.enums.ApplicationStatus;
 import com.oceandate.backend.domain.matching.enums.EventStatus;
@@ -104,7 +101,7 @@ public class RotationService {
             applications = rotationRepository.findByEventId(eventId);
         }
         else {
-            applications = rotationRepository.findByEventIdAndStatus(status);
+            applications = rotationRepository.findByEventIdAndStatus(eventId, status);
         }
         return applications.stream()
                 .map(RotationResponse::from)
@@ -206,5 +203,12 @@ public class RotationService {
         }
 
         return RefundResponse.of(applicationId, refundAmount, refundRate, refundReason);
+    }
+
+    public RotationResponse getPreviousApplication(AccountContext accountContext) {
+        return rotationRepository
+                .findFirstByMemberIdOrderByCreatedAtDesc(accountContext.getMemberId())
+                .map(RotationResponse::from)
+                .orElse(RotationResponse.empty());
     }
 }

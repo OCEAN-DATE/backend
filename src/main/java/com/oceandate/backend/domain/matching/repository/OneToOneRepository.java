@@ -21,4 +21,9 @@ public interface OneToOneRepository extends JpaRepository<OneToOne, Long> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT o FROM OneToOne o WHERE o.orderId = :orderId")
     Optional<OneToOne> findByOrderIdWithLock(String orderId);
+
+    @Query("SELECT o FROM OneToOne o WHERE o.event.id = :eventId AND o.status = :applicationStatus")
+    List<OneToOne> findByEventIdAndStatus(Long eventId, ApplicationStatus applicationStatus);
+
+    Optional<OneToOne> findFirstByMemberIdOrderByCreatedAtDesc(Long memberId);
 }

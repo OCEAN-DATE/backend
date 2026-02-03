@@ -28,6 +28,14 @@ public class RotationResponse {
 
     private UserInfo applicantInfo;
 
+    private String message;
+
+    public static RotationResponse empty() {
+        return RotationResponse.builder()
+                .message("이전에 신청한 내역이 없습니다.")
+                .build();
+    }
+
     // 목록 조회용
     public static RotationResponse from(Rotation rotation) {
         return RotationResponse.builder()

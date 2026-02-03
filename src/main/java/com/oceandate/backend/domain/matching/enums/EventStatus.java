@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 public enum EventStatus {
     OPEN,
     CLOSED,
+    DELETED,
     IN_PROGRESS,
     COMPLETED;
 }
