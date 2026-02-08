@@ -90,9 +90,6 @@ public class OneToOneController {
             @AuthenticationPrincipal AccountContext accountContext) {
         Long userId = accountContext.getMemberId();
 
-        Member user = memberRepository.findById(userId)
-                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
-
         List<OneToOneResponse> response = oneToOneService.getMyApplications(userId);
 
         return ResponseEntity.ok(response);
@@ -104,9 +101,6 @@ public class OneToOneController {
             @PathVariable Long applicationId,
             @AuthenticationPrincipal AccountContext accountContext) {
         Long userId = accountContext.getMemberId();
-
-        Member user = memberRepository.findById(userId)
-                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
         OneToOneResponse response = oneToOneService.getMyApplicationDetail(userId, applicationId);
 
@@ -169,7 +163,7 @@ public class OneToOneController {
     }
 
     @Operation(summary = "일대일 신청 취소")
-    @PatchMapping("/applications/{applicationId}")
+    @DeleteMapping("/applications/{applicationId}")
     public ResponseEntity<RefundResponse> cancelApplication(
             @PathVariable Long applicationId,
             @RequestBody(required = false) CancelRequest request,

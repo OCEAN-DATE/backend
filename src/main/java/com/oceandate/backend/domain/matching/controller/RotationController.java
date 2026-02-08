@@ -131,7 +131,7 @@ public class RotationController {
     }
 
     @Operation(summary = "로테이션 신청 취소")
-    @PatchMapping("/events/{eventId}/applications/{applicationId}/cancel")
+    @DeleteMapping("/events/{eventId}/applications/{applicationId}/cancel")
     public ResponseEntity<RefundResponse> cancelApplication(
             @PathVariable Long eventId,
             @PathVariable Long applicationId,

@@ -42,10 +42,15 @@ public class AuthController {
 
     @PostMapping("/logout")
     public ResponseEntity<Void> logout(
-            @RequestParam Long memberId,  // TODO: JWT에서 memberId 추출
+            @AuthenticationPrincipal AccountContext accountContext,
             HttpServletRequest request,
             HttpServletResponse response
     ) {
+        if (accountContext == null) {
+            return ResponseEntity.status(401).build();
+        }
+
+        Long memberId = accountContext.getMemberId();
         log.info("로그아웃 요청 - memberId: {}", memberId);
         authService.logout(memberId, request, response);
         return ResponseEntity.ok().build();
@@ -53,10 +58,15 @@ public class AuthController {
 
     @DeleteMapping("/withdraw")
     public ResponseEntity<Void> withdraw(
-            @RequestParam Long memberId,  // TODO: JWT에서 memberId 추출
+            @AuthenticationPrincipal AccountContext accountContext,
             HttpServletRequest request,
             HttpServletResponse response
     ) {
+        if (accountContext == null) {
+            return ResponseEntity.status(401).build();
+        }
+
+        Long memberId = accountContext.getMemberId();
         log.info("회원 탈퇴 요청 - memberId: {}", memberId);
         authService.withdraw(memberId, request, response);
         return ResponseEntity.ok().build();
