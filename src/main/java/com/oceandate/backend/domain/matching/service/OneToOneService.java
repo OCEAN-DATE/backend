@@ -139,13 +139,6 @@ public class OneToOneService {
                 .collect(Collectors.toList());
     }
 
-    public void deleteEvent(Long eventId) {
-        OneToOneEvent event = oneToOneEventRepository.findById(eventId)
-                .orElseThrow(() -> new CustomException(ErrorCode.EVENT_NOT_FOUND));
-
-        oneToOneEventRepository.deleteById(event.getId());
-    }
-
     @Transactional
     public RefundResponse cancelApplication(
             Long applicationId,
@@ -204,5 +197,12 @@ public class OneToOneService {
         }
 
         return RefundResponse.of(applicationId, refundAmount, refundRate, refundPolicyReason);
+    }
+
+    public OneToOneResponse getPreviousApplication(AccountContext accountContext) {
+        return oneToOneRepository
+                .findFirstByMemberIdOrderByCreatedAtDesc(accountContext.getMemberId())
+                .map(OneToOneResponse::from)
+                .orElse(OneToOneResponse.empty());
     }
 }

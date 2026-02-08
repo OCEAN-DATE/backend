@@ -1,6 +1,7 @@
 package com.oceandate.backend.domain.matching.controller;
 
 import com.oceandate.backend.domain.matching.dto.*;
+import com.oceandate.backend.domain.matching.entity.RotationEvent;
 import com.oceandate.backend.domain.matching.enums.ApplicationStatus;
 import com.oceandate.backend.domain.matching.enums.EventStatus;
 import com.oceandate.backend.domain.matching.service.RotationEventService;
@@ -50,6 +51,23 @@ public class RotationController {
         RotationEventResponse response = rotationEventService.createEvent(rotationEventRequest);
 
         return ResponseEntity.ok(response);
+    }
+
+    @Operation(summary = "[관리자] 로테이션 소개팅 이벤트 삭제")
+    @DeleteMapping("/event/{eventId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<String> deleteEvent(@PathVariable Long eventId){
+        rotationEventService.deleteEvent(eventId);
+        return ResponseEntity.ok("이벤트가 삭제되었습니다.");
+    }
+
+    @Operation(summary = "[관리자] 로테이션 소개팅 이벤트 상태 변경")
+    @PreAuthorize("hasRole('ADMIN')")
+    @PatchMapping("/event/{eventId}")
+    public ResponseEntity<String> updateEventStatus(
+            @PathVariable Long eventId, @RequestParam EventStatus status){
+        rotationEventService.updateEventStaus(eventId, status);
+        return ResponseEntity.ok("이벤트 상태가 변경되었습니다.");
     }
 
     @Operation(summary = "[관리자] 로테이션 소개팅 이벤트별 신청서 목록 조회")
@@ -113,7 +131,7 @@ public class RotationController {
     }
 
     @Operation(summary = "로테이션 신청 취소")
-    @PatchMapping("/events/{eventId}/applications/{applicationId}/cancel")
+    @DeleteMapping("/events/{eventId}/applications/{applicationId}/cancel")
     public ResponseEntity<RefundResponse> cancelApplication(
             @PathVariable Long eventId,
             @PathVariable Long applicationId,
@@ -121,6 +139,15 @@ public class RotationController {
             @AuthenticationPrincipal AccountContext accountContext
     ){
         RefundResponse response = rotationService.cancelApplications(eventId, applicationId, request.getCancelReason(), accountContext);
+        return ResponseEntity.ok(response);
+    }
+
+    @Operation(summary = "로테이션 소개팅 이전 신청서 불러오기", description = "이전에 신청한 내역이 있는 경우 가장 최근 신청서를 불러옵니다.")
+    @GetMapping("/applications/previous")
+    public ResponseEntity<RotationResponse> getPreviousApplication(
+            @AuthenticationPrincipal AccountContext accountContext
+    ){
+        RotationResponse response = rotationService.getPreviousApplication(accountContext);
         return ResponseEntity.ok(response);
     }
 }
