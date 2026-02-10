@@ -10,15 +10,12 @@ import com.oceandate.backend.domain.matching.service.OneToOneService;
 import com.oceandate.backend.domain.payment.dto.RefundResponse;
 import com.oceandate.backend.domain.user.entity.Member;
 import com.oceandate.backend.domain.user.repository.MemberRepository;
-import com.oceandate.backend.global.exception.CustomException;
-import com.oceandate.backend.global.exception.constant.ErrorCode;
 import com.oceandate.backend.global.jwt.AccountContext;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -128,6 +125,15 @@ public class OneToOneController {
         return ResponseEntity.ok(response);
     }
 
+    @Operation(summary = "일대일 소개팅 이벤트 상세 조회")
+    @GetMapping("/events/{eventId}")
+    public ResponseEntity<OneToOneEventResponse> getEventDetail(
+            @PathVariable Long eventId
+    ){
+        OneToOneEventResponse response = oneToOneEventService.getEventDetail(eventId);
+
+        return ResponseEntity.ok(response);
+    }
     @Operation(summary = "[관리자] 일대일 소개팅 이벤트 삭제")
     //    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/event/{eventId}")

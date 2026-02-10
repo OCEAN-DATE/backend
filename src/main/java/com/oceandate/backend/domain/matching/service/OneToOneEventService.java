@@ -6,8 +6,11 @@ import com.oceandate.backend.domain.matching.entity.OneToOne;
 import com.oceandate.backend.domain.matching.entity.OneToOneEvent;
 import com.oceandate.backend.domain.matching.enums.ApplicationStatus;
 import com.oceandate.backend.domain.matching.enums.EventStatus;
+import com.oceandate.backend.domain.matching.enums.MatchingType;
 import com.oceandate.backend.domain.matching.repository.OneToOneEventRepository;
 import com.oceandate.backend.domain.matching.repository.OneToOneRepository;
+import com.oceandate.backend.domain.review.dto.ReviewResponse;
+import com.oceandate.backend.domain.review.service.ReviewService;
 import com.oceandate.backend.global.exception.CustomException;
 import com.oceandate.backend.global.exception.constant.ErrorCode;
 import jakarta.transaction.Transactional;
@@ -25,6 +28,7 @@ public class OneToOneEventService {
 
     private final OneToOneRepository oneToOneRepository;
     private final OneToOneEventRepository oneToOneEventRepository;
+    private final ReviewService reviewService;
     private final S3Uploader s3Uploader;
 
     public OneToOneEvent createEvent(OneToOneEventRequest request) {
@@ -83,5 +87,17 @@ public class OneToOneEventService {
                 .orElseThrow(() -> new CustomException(ErrorCode.EVENT_NOT_FOUND));
 
         event.setStatus(status);
+    }
+
+    public OneToOneEventResponse getEventDetail(Long eventId) {
+        OneToOneEvent event = oneToOneEventRepository.findById(eventId)
+                .orElseThrow(() -> new CustomException(ErrorCode.EVENT_NOT_FOUND));
+
+        List<ReviewResponse> reviews = reviewService.getReviewsByMatching(
+                MatchingType.ONE_TO_ONE,
+                eventId
+        );
+
+        return OneToOneEventResponse.fromDetail(event, reviews);
     }
 }

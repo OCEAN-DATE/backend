@@ -121,6 +121,16 @@ public class RotationController {
         return ResponseEntity.ok(response);
     }
 
+    @Operation(summary = "로테이션 소개팅 이벤트 상세 조회")
+    @GetMapping("/events/{eventId}")
+    public ResponseEntity<RotationEventResponse> getEventDetail(
+            @PathVariable Long eventId
+    ){
+        RotationEventResponse response = rotationEventService.getEventDetail(eventId);
+
+        return ResponseEntity.ok(response);
+    }
+
     @Operation(summary = "[관리자] 로테이션 소개팅 별 승인된 신청 조회")
     @GetMapping("/events/{eventId}/approved")
     public ResponseEntity<List<RotationResponse>> getApprovedMembers(
