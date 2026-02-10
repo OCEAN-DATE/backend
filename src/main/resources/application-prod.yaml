@@ -1,3 +1,6 @@
+server:
+  forward-headers-strategy: framework
+
 management:
   endpoints:
     web:
@@ -94,9 +97,6 @@ springdoc:
   swagger-ui:
     enabled: true
     path: /swagger-ui.html
-    servers:
-      - url: https://maybe.io.kr
-        description: Production Server
   default-consumes-media-type: application/json
   default-produces-media-type: application/json
 
