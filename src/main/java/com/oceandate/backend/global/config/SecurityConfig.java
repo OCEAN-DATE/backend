@@ -79,10 +79,10 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOriginPatterns(List.of(
+        config.setAllowedOrigins(List.of(
                 "http://localhost:3000",
                 "http://localhost:8080",
-                "https://*.vercel.app",
+                "https://v0-oceandate.vercel.app",
                 "https://www.maybe.io.kr",
                 "https://maybe.io.kr"
         ));
