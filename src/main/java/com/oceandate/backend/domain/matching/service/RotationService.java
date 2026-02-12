@@ -72,7 +72,6 @@ public class RotationService {
                 .introduction(request.getIntroduction())
                 .orderId(orderId)
                 .status(ApplicationStatus.PAYMENT_PENDING)
-                .confirmedDate(event.getEventDateTime())
                 .build();
 
         rotationRepository.save(application);
@@ -91,6 +90,7 @@ public class RotationService {
         if (status == ApplicationStatus.APPROVED) {
             application.getEvent().incrementApprovedCount(application.getMember().getSex());
             application.setApprovedAt(LocalDateTime.now());
+            application.setConfirmedDate(application.getEvent().getEventDateTime());
         }
         application.setStatus(status);
     }
@@ -158,11 +158,11 @@ public class RotationService {
         Rotation application = rotationRepository.findByEventIdAndApplicationId(eventId, applicationId)
                 .orElseThrow(() -> new CustomException(ErrorCode.APPLICATION_NOT_FOUND));
 
-        if(!application.getMember().getId().equals(accountContext.getMemberId())){
+        if (!application.getMember().getId().equals(accountContext.getMemberId())) {
             throw new CustomException(ErrorCode.ACCESS_DENIED);
         }
 
-        if(!application.getStatus().isCancellable()){
+        if (!application.getStatus().isCancellable()) {
             throw new CustomException(ErrorCode.INVALID_CANCEL_STATUS);
         }
 
@@ -170,10 +170,14 @@ public class RotationService {
         int refundRate = 0;
         String refundReason = "결제 전 취소";
 
-        if(application.getStatus().isRefundRequired()) {
+        if (application.getStatus().isRefundRequired()) {
             RotationEvent event = application.getEvent();
-            RefundPolicy.RefundAmount refund = RefundPolicy.calculateRotationRefund(
-                    event.getEventDateTime(),
+
+            LocalDateTime paymentDate = application.getPaidAt();
+
+            RefundPolicy.RefundAmount refund = RefundPolicy.calculate(
+                    application.getConfirmedDate(),
+                    paymentDate,
                     LocalDateTime.now(),
                     application.getAmount()
             );
@@ -182,25 +186,18 @@ public class RotationService {
             refundRate = refund.getRate();
             refundReason = refund.getReason();
 
-            if(refundAmount > 0){
+            if (refundAmount > 0) {
                 PaymentCancelRequest cancelRequest = PaymentCancelRequest.builder()
-                                        .paymentKey(application.getPaymentKey())
-                                        .cancelReason(refundReason)
-                                        .cancelAmount(refundAmount)
-                                        .build();
+                        .paymentKey(application.getPaymentKey())
+                        .cancelReason(refundReason)
+                        .cancelAmount(refundAmount)
+                        .build();
 
                 paymentService.cancelPayment(accountContext, cancelRequest);
             }
         }
 
-        application.setStatus(ApplicationStatus.CANCELLED);
-        application.setCancelledAt(LocalDateTime.now());
-        application.setCancelReason(cancelReason != null ? cancelReason : "사용자 요청");
-        application.setRefundAmount(refundAmount);
-
-        if (refundAmount > 0) {
-            application.setRefundedAt(LocalDateTime.now());
-        }
+        application.cancel(cancelReason != null ? cancelReason : "사용자 요청", refundAmount);
 
         return RefundResponse.of(applicationId, refundAmount, refundRate, refundReason);
     }

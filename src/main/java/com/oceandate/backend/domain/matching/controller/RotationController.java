@@ -111,7 +111,7 @@ public class RotationController {
     }
 
 
-    @Operation(summary = "로테이션 소개팅 이벤트 목록 조회")
+    @Operation(summary = "로테이션 소개팅 이벤트 목록 조회", description = "목록 조회 시 imageUrl, reviews는 응답에 포함되지 않습니다.")
     @GetMapping("/events")
     public ResponseEntity<List<RotationEventResponse>> getEvents(
             @RequestParam(required = false) EventStatus status

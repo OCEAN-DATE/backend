@@ -5,6 +5,7 @@ import com.oceandate.backend.domain.matching.dto.UserInfo;
 import com.oceandate.backend.domain.matching.dto.OneToOneRequest;
 import com.oceandate.backend.domain.matching.entity.OneToOne;
 import com.oceandate.backend.domain.matching.entity.OneToOneEvent;
+import com.oceandate.backend.domain.matching.entity.OneToOneMatching;
 import com.oceandate.backend.domain.matching.enums.ApplicationStatus;
 import com.oceandate.backend.domain.matching.enums.EventStatus;
 import com.oceandate.backend.domain.matching.repository.OneToOneEventRepository;
@@ -39,6 +40,7 @@ public class OneToOneService {
     private final OneToOneEventRepository oneToOneEventRepository;
     private final OneToOneMatchingRepository matchingRepository;
     private final MemberRepository memberRepository;
+    private final OneToOneMatchingRepository oneToOneMatchingRepository;
     private final PaymentService paymentService;
 
     @Transactional
@@ -106,7 +108,14 @@ public class OneToOneService {
         OneToOne application = oneToOneRepository.findById(applicationId)
                 .orElseThrow(() -> new CustomException(ErrorCode.APPLICATION_NOT_FOUND));
 
-        return OneToOneResponse.fromMatched(application, UserInfo.from(application), getMatchedPartner(applicationId));
+        UserInfo applicantInfo = UserInfo.from(application);
+
+        if (application.getStatus() == ApplicationStatus.MATCHED) {
+            UserInfo partnerInfo = getMatchedPartner(applicationId);
+            return OneToOneResponse.fromMatched(application, applicantInfo, partnerInfo);
+        }
+
+        return OneToOneResponse.fromDetail(application, applicantInfo);
     }
 
     private UserInfo getMatchedPartner(Long applicationId) {
@@ -156,47 +165,78 @@ public class OneToOneService {
             throw new CustomException(ErrorCode.INVALID_CANCEL_STATUS);
         }
 
-        int refundAmount = 0;
-        int refundRate = 0;
-        String refundPolicyReason = "결제 전 취소";
+        // 환불 계산
+        RefundPolicy.RefundAmount refund = calculateRefund(application);
 
-        if (application.getStatus().isRefundRequired()) {
-            LocalDateTime matchedAt = application.getApprovedAt();
-            if (matchedAt == null) {
-                matchedAt = application.getCreatedAt();
-            }
-
-            RefundPolicy.RefundAmount refund = RefundPolicy.calculateOneToOneRefund(
-                    matchedAt,
-                    LocalDateTime.now(),
-                    application.getAmount()
-            );
-
-            refundAmount = refund.getAmount();
-            refundRate = refund.getRate();
-            refundPolicyReason = refund.getReason();
-
-            if (refundAmount > 0) {
-                PaymentCancelRequest cancelRequest = PaymentCancelRequest.builder()
-                        .paymentKey(application.getPaymentKey())
-                        .cancelReason(refundPolicyReason)
-                        .cancelAmount(refundAmount)
-                        .build();
-
-                paymentService.cancelPayment(accountContext, cancelRequest);
-            }
+        // 결제 취소 처리
+        if (refund.getAmount() > 0) {
+            processPaymentCancel(accountContext, application, refund);
         }
 
-        application.setStatus(ApplicationStatus.CANCELLED);
-        application.setCancelledAt(LocalDateTime.now());
-        application.setCancelReason(userCancelReason != null ? userCancelReason : "사용자 요청");
-        application.setRefundAmount(refundAmount);
+        // 본인 취소
+        String cancelReason = userCancelReason != null ? userCancelReason : "사용자 요청";
+        application.cancel(cancelReason, refund.getAmount());
 
-        if (refundAmount > 0) {
-            application.setRefundedAt(LocalDateTime.now());
+        // MATCHED 상태면 상대방도 취소 + 전액 환불
+        if (application.getStatus() == ApplicationStatus.MATCHED) {
+            cancelCounterpart(application, accountContext);
         }
 
-        return RefundResponse.of(applicationId, refundAmount, refundRate, refundPolicyReason);
+        return RefundResponse.of(applicationId, refund.getAmount(), refund.getRate(), refund.getReason());
+    }
+
+    private RefundPolicy.RefundAmount calculateRefund(OneToOne application) {
+        if (!application.getStatus().isRefundRequired()) {
+            return new RefundPolicy.RefundAmount(0, 0, "결제 전 취소");
+        }
+
+        LocalDateTime eventDate = application.getConfirmedDate();
+        LocalDateTime paymentDate = application.getPaidAt();
+
+        return RefundPolicy.calculate(
+                eventDate,
+                paymentDate,
+                LocalDateTime.now(),
+                application.getAmount()
+        );
+    }
+
+    private void cancelCounterpart(OneToOne application, AccountContext accountContext) {
+        OneToOneMatching matching = oneToOneMatchingRepository
+                .findByMaleApplicationOrFemaleApplication(application, application)
+                .orElseThrow(() -> new CustomException(ErrorCode.MATCHING_NOT_FOUND));
+
+        OneToOne counterpart = matching.getMaleApplication().equals(application)
+                ? matching.getFemaleApplication()
+                : matching.getMaleApplication();
+
+        if (!counterpart.getStatus().isCancellable()) {
+            return;
+        }
+
+        RefundPolicy.RefundAmount counterpartRefund = RefundPolicy.fullRefundByCounterpart(
+                counterpart.getAmount()
+        );
+
+        if (counterpartRefund.getAmount() > 0) {
+            processPaymentCancel(accountContext, counterpart, counterpartRefund);
+        }
+
+        counterpart.cancel("상대방 취소로 인한 자동 취소", counterpartRefund.getAmount());
+    }
+
+    private void processPaymentCancel(
+            AccountContext accountContext,
+            OneToOne target,
+            RefundPolicy.RefundAmount refund
+    ) {
+        PaymentCancelRequest cancelRequest = PaymentCancelRequest.builder()
+                .paymentKey(target.getPaymentKey())
+                .cancelReason(refund.getReason())
+                .cancelAmount(refund.getAmount())
+                .build();
+
+        paymentService.cancelPayment(accountContext, cancelRequest);
     }
 
     public OneToOneResponse getPreviousApplication(AccountContext accountContext) {
