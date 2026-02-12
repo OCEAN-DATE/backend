@@ -18,7 +18,7 @@ public class PaymentConfirmResponse {
     private String orderId;
     private ApplicationStatus status;
     private Integer amount;
-    private LocalDateTime approvedAt;
+    private LocalDateTime paidAt;
     private PaymentMethod method;
 
     public static PaymentConfirmResponse from(Matching application) {
@@ -27,7 +27,7 @@ public class PaymentConfirmResponse {
                 .paymentKey(application.getPaymentKey())
                 .amount(application.getAmount())
                 .status(application.getStatus())
-                .approvedAt(application.getUpdatedAt())
+                .paidAt(application.getPaidAt())
                 .build();
     }
 }

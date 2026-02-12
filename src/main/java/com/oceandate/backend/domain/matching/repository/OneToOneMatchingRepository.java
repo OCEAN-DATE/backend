@@ -1,5 +1,6 @@
 package com.oceandate.backend.domain.matching.repository;
 
+import com.oceandate.backend.domain.matching.entity.OneToOne;
 import com.oceandate.backend.domain.matching.entity.OneToOneMatching;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -31,4 +32,6 @@ public interface OneToOneMatchingRepository extends JpaRepository<OneToOneMatchi
             "WHERE m.maleApplication.id = :applicationId " +
             "   OR m.femaleApplication.id = :applicationId ")
     Optional<OneToOneMatching> findByApplicationId(Long applicationId);
+
+    Optional<OneToOneMatching> findByMaleApplicationOrFemaleApplication(OneToOne application, OneToOne application1);
 }

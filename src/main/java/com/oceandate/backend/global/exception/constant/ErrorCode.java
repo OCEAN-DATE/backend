@@ -23,6 +23,7 @@ public enum ErrorCode {
     DIFFERENT_EVENT_APPLICATION("MATCHING_400", "다른 이벤트의 신청서입니다."),
     ALREADY_MATCHED("MATCHING_409", "이미 매칭된 신청서입니다."),
     INVALID_MATCHING_STATUS("MATCHING_400", "매칭 가능한 상태가 아닙니다."),
+    MATCHING_NOT_FOUND("MATCHING_404", "매칭 상대를 찾을 수 없습니다."),
 
     // 이벤트
     EVENT_NOT_FOUND("EVENT_404", "이벤트를 찾을 수 없습니다."),

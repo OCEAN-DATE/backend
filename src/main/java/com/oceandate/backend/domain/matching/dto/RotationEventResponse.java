@@ -20,6 +20,8 @@ public class RotationEventResponse {
     private LocalDateTime eventDateTime;
     private Integer maleCapacity;
     private Integer femaleCapacity;
+    private Integer approvedMaleCount;
+    private Integer approvedFemaleCount;
     private String ageRange;
     private String location;
     private Integer amount;
@@ -35,6 +37,8 @@ public class RotationEventResponse {
                 .eventDateTime(rotationEvent.getEventDateTime())
                 .maleCapacity(rotationEvent.getMaleCapacity())
                 .femaleCapacity(rotationEvent.getFemaleCapacity())
+                .approvedMaleCount(rotationEvent.getApprovedMaleCount())
+                .approvedFemaleCount(rotationEvent.getApprovedFemaleCount())
                 .ageRange(rotationEvent.getAgeRange())
                 .location(rotationEvent.getLocation())
                 .description(rotationEvent.getDescription())
@@ -48,6 +52,8 @@ public class RotationEventResponse {
                 .eventDateTime(rotationEvent.getEventDateTime())
                 .maleCapacity(rotationEvent.getMaleCapacity())
                 .femaleCapacity(rotationEvent.getFemaleCapacity())
+                .approvedMaleCount(rotationEvent.getApprovedMaleCount())
+                .approvedFemaleCount(rotationEvent.getApprovedFemaleCount())
                 .ageRange(rotationEvent.getAgeRange())
                 .location(rotationEvent.getLocation())
                 .description(rotationEvent.getDescription())
