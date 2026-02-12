@@ -267,7 +267,10 @@ public class AdminController {
     }
 
     @Operation(summary = "[관리자] 여러 사용자에게 쿠폰 발급",
-               description = "여러 사용자에게 쿠폰을 발급합니다. memberIds가 null이면 전체 사용자에게 발급")
+               description = "여러 사용자에게 쿠폰을 발급합니다. " +
+                       "isReviewWriters=true면 후기 작성자들에게만 발급, " +
+                       "memberIds 지정 시 특정 사용자들에게 발급, " +
+                       "둘 다 없으면 전체 사용자에게 발급")
     @PostMapping("/coupons/issue")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<com.oceandate.backend.domain.payment.dto.MemberCouponResponse>> issueCouponToUsers(

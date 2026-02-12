@@ -222,4 +222,23 @@ public class RotationService {
 
         return RefundResponse.of(applicationId, refundAmount, refundRate, refundReason);
     }
+
+    /**
+     * 관리자용 - 로테이션 소개팅 취소
+     */
+    @Transactional
+    public void cancelApplication(Long applicationId, String reason) {
+        Rotation application = rotationRepository.findById(applicationId)
+                .orElseThrow(() -> new CustomException(ErrorCode.APPLICATION_NOT_FOUND));
+
+        // 승인된 신청인 경우 인원 수 감소
+        if (application.getStatus() == ApplicationStatus.APPROVED ||
+            application.getStatus() == ApplicationStatus.PAYMENT_COMPLETED) {
+            RotationEvent event = application.getEvent();
+            event.decrementApprovedCount(application.getMember().getSex());
+        }
+
+        // 취소 처리
+        application.cancel(reason, 0);
+    }
 }
