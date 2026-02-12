@@ -8,6 +8,7 @@ import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
+
 import java.util.List;
 import java.util.Optional;
 
@@ -32,8 +33,12 @@ public interface RotationRepository extends JpaRepository<Rotation, Long> {
     List<Rotation> findByEventId(Long eventId);
 
     @Query("SELECT o FROM Rotation o WHERE o.event.id = :eventId AND o.status = :status")
-    List<Rotation> findByEventIdAndStatus(ApplicationStatus status);
+    List<Rotation> findByEventIdAndStatus(Long eventId, ApplicationStatus status);
 
     @Query("SELECT o FROM Rotation o WHERE o.id = :applicationId AND o.event.id = :eventId")
     Optional<Rotation> findByEventIdAndApplicationId(Long eventId, Long applicationId);
+
+    Optional<Rotation> findFirstByMemberIdOrderByCreatedAtDesc(Long memberId);
+
+    Optional<Rotation> findByPaymentKey(String paymentKey);
 }

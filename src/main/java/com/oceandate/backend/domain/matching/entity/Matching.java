@@ -59,6 +59,9 @@ public abstract class Matching {
     protected LocalDateTime updatedAt;
 
     @Column
+    private LocalDateTime paidAt;
+
+    @Column
     private LocalDateTime cancelledAt;
 
     @Column

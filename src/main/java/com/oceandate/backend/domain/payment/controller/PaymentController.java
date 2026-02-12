@@ -3,7 +3,6 @@ package com.oceandate.backend.domain.payment.controller;
 import com.oceandate.backend.domain.payment.dto.PaymentCancelRequest;
 import com.oceandate.backend.domain.payment.dto.PaymentConfirmRequest;
 import com.oceandate.backend.domain.payment.dto.PaymentConfirmResponse;
-import com.oceandate.backend.domain.payment.dto.TossPaymentResponse;
 import com.oceandate.backend.domain.payment.service.PaymentService;
 import com.oceandate.backend.global.jwt.AccountContext;
 import io.swagger.v3.oas.annotations.Operation;

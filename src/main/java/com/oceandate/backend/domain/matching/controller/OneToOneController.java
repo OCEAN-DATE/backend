@@ -8,17 +8,13 @@ import com.oceandate.backend.domain.matching.service.OneToOneEventService;
 import com.oceandate.backend.domain.matching.service.OneToOneMatchingService;
 import com.oceandate.backend.domain.matching.service.OneToOneService;
 import com.oceandate.backend.domain.payment.dto.RefundResponse;
-import com.oceandate.backend.domain.user.entity.Member;
 import com.oceandate.backend.domain.user.repository.MemberRepository;
-import com.oceandate.backend.global.exception.CustomException;
-import com.oceandate.backend.global.exception.constant.ErrorCode;
 import com.oceandate.backend.global.jwt.AccountContext;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -43,9 +39,6 @@ public class OneToOneController {
             @RequestBody OneToOneRequest request,
             @AuthenticationPrincipal AccountContext accountContext) {
         Long userId = accountContext.getMemberId();
-
-        Member user = memberRepository.findById(userId).
-                orElseThrow(() -> new IllegalArgumentException("사용자가 존재하지 않습니다."));
 
         oneToOneService.createApplication(userId, request);
 
@@ -90,9 +83,6 @@ public class OneToOneController {
             @AuthenticationPrincipal AccountContext accountContext) {
         Long userId = accountContext.getMemberId();
 
-        Member user = memberRepository.findById(userId)
-                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
-
         List<OneToOneResponse> response = oneToOneService.getMyApplications(userId);
 
         return ResponseEntity.ok(response);
@@ -104,9 +94,6 @@ public class OneToOneController {
             @PathVariable Long applicationId,
             @AuthenticationPrincipal AccountContext accountContext) {
         Long userId = accountContext.getMemberId();
-
-        Member user = memberRepository.findById(userId)
-                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
         OneToOneResponse response = oneToOneService.getMyApplicationDetail(userId, applicationId);
 
@@ -124,7 +111,7 @@ public class OneToOneController {
         return ResponseEntity.ok(event);
     }
 
-    @Operation(summary = "일대일 소개팅 이벤트 목록 조회")
+    @Operation(summary = "일대일 소개팅 이벤트 목록 조회", description = "imageUrl, reviews는 목록 조회 시 응답에 포함되지 않습니다.")
     @GetMapping("/event")
     public ResponseEntity<List<OneToOneEventResponse>> getEvents(
             @RequestParam(required = false) EventStatus status
@@ -134,12 +121,30 @@ public class OneToOneController {
         return ResponseEntity.ok(response);
     }
 
+    @Operation(summary = "일대일 소개팅 이벤트 상세 조회")
+    @GetMapping("/events/{eventId}")
+    public ResponseEntity<OneToOneEventResponse> getEventDetail(
+            @PathVariable Long eventId
+    ){
+        OneToOneEventResponse response = oneToOneEventService.getEventDetail(eventId);
+
+        return ResponseEntity.ok(response);
+    }
     @Operation(summary = "[관리자] 일대일 소개팅 이벤트 삭제")
     @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/event/{eventId}")
     public ResponseEntity<String> deleteEvent(@PathVariable Long eventId){
-        oneToOneService.deleteEvent(eventId);
+        oneToOneEventService.deleteEvent(eventId);
         return ResponseEntity.ok("이벤트가 삭제되었습니다.");
+    }
+
+    @Operation(summary = "[관리자] 일대일 소개팅 이벤트 상태 변경")
+    @PreAuthorize("hasRole('ADMIN')")
+    @PatchMapping("/event/{eventId}")
+    public ResponseEntity<String> updateEventStatus(
+            @PathVariable Long eventId, @RequestParam EventStatus status){
+        oneToOneEventService.updateEventStatus(eventId, status);
+        return ResponseEntity.ok("이벤트 상태가 변경되었습니다. ");
     }
 
     @Operation(summary = "[관리자] 일대일 소개팅 매칭")
@@ -172,6 +177,15 @@ public class OneToOneController {
                 cancelReason,
                 accountContext
         );
+        return ResponseEntity.ok(response);
+    }
+
+    @Operation(summary = "일대일 소개팅 이전 신청서 불러오기", description = "이전에 신청한 내역이 있는 경우 가장 최근 신청서를 불러옵니다.")
+    @GetMapping("/applications/previous")
+    public ResponseEntity<OneToOneResponse> getPreviousApplication(
+            @AuthenticationPrincipal AccountContext accountContext
+    ){
+        OneToOneResponse response = oneToOneService.getPreviousApplication(accountContext);
         return ResponseEntity.ok(response);
     }
 }

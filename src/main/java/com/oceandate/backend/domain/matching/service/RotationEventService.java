@@ -2,19 +2,32 @@ package com.oceandate.backend.domain.matching.service;
 
 import com.oceandate.backend.domain.matching.dto.RotationEventRequest;
 import com.oceandate.backend.domain.matching.dto.RotationEventResponse;
+import com.oceandate.backend.domain.matching.entity.Rotation;
 import com.oceandate.backend.domain.matching.entity.RotationEvent;
+import com.oceandate.backend.domain.matching.enums.ApplicationStatus;
 import com.oceandate.backend.domain.matching.enums.EventStatus;
+import com.oceandate.backend.domain.matching.enums.MatchingType;
 import com.oceandate.backend.domain.matching.repository.RotationEventRepository;
+import com.oceandate.backend.domain.matching.repository.RotationRepository;
+import com.oceandate.backend.domain.review.dto.ReviewResponse;
+import com.oceandate.backend.domain.review.service.ReviewService;
+import com.oceandate.backend.global.exception.CustomException;
+import com.oceandate.backend.global.exception.constant.ErrorCode;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+
+import java.time.LocalDateTime;
+import java.util.List;
 
 @Service
 @Transactional
 @RequiredArgsConstructor
 public class RotationEventService {
 
+    private final RotationRepository rotationRepository;
     private final RotationEventRepository rotationEventRepository;
+    private final ReviewService reviewService;
     private final S3Uploader s3Uploader;
 
     @Transactional
@@ -50,5 +63,40 @@ public class RotationEventService {
                 .amount(rotationEvent.getAmount())
                 .description(rotationEvent.getDescription())
                 .build();
+    }
+
+    @Transactional
+    public void deleteEvent(Long eventId) {
+        RotationEvent event = rotationEventRepository.findById(eventId)
+                .orElseThrow(() -> new CustomException(ErrorCode.EVENT_NOT_FOUND));
+
+        List<Rotation> applications = rotationRepository.findByEventIdAndStatus(eventId, ApplicationStatus.PAYMENT_COMPLETED);
+
+        if(!applications.isEmpty()){
+            throw new CustomException(ErrorCode.INVALID_DELETE_STATUS);
+        }
+
+        event.setStatus(EventStatus.DELETED);
+        event.setDeletedAt(LocalDateTime.now());
+    }
+
+    @Transactional
+    public void updateEventStaus(Long eventId, EventStatus status) {
+        RotationEvent event = rotationEventRepository.findById(eventId)
+                .orElseThrow(() -> new CustomException(ErrorCode.EVENT_NOT_FOUND));
+
+        event.setStatus(status);
+    }
+
+    public RotationEventResponse getEventDetail(Long eventId) {
+        RotationEvent event = rotationEventRepository.findById(eventId)
+                .orElseThrow(() -> new CustomException(ErrorCode.EVENT_NOT_FOUND));
+
+        List<ReviewResponse> reviews = reviewService.getReviewsByMatching(
+                MatchingType.ROTATION,
+                eventId
+        );
+
+        return RotationEventResponse.fromDetail(event, reviews);
     }
 }

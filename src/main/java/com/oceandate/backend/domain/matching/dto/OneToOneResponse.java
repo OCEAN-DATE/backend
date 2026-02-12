@@ -32,6 +32,14 @@ public class OneToOneResponse {
 
     private LocalDateTime confirmedDate;
 
+    private String message;
+
+    public static OneToOneResponse empty() {
+        return OneToOneResponse.builder()
+                .message("이전에 작성한 신청서가 없습니다.")
+                .build();
+    }
+
     // 목록 조회용
     public static OneToOneResponse from(OneToOne oneToOne) {
         return OneToOneResponse.builder()
