@@ -1,5 +1,6 @@
 package com.oceandate.backend.domain.user.service;
 
+import com.oceandate.backend.domain.payment.service.CouponService;
 import com.oceandate.backend.domain.user.entity.Member;
 import com.oceandate.backend.domain.user.repository.MemberRepository;
 import com.oceandate.backend.global.exception.CustomException;
@@ -16,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class MemberService {
 
     private final MemberRepository memberRepository;
+    private final CouponService couponService;
 
     @Transactional
     public Member registerMember(SocialUserInfo userInfo) {
@@ -27,7 +29,17 @@ public class MemberService {
 
         // 신규 회원 등록
         Member newMember = Member.from(userInfo);
-        return memberRepository.save(newMember);
+        Member savedMember = memberRepository.save(newMember);
+
+        // 회원가입 쿠폰 자동 발급
+        try {
+            couponService.issueWelcomeCoupon(savedMember);
+        } catch (Exception e) {
+            // 쿠폰 발급 실패해도 회원가입은 성공으로 처리
+            // 로그만 남기고 예외는 무시
+        }
+
+        return savedMember;
     }
 
     public Member findById(Long memberId) {
