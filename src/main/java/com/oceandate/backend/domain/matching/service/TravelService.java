@@ -13,11 +13,14 @@ import com.oceandate.backend.domain.user.entity.Sex;
 import com.oceandate.backend.domain.user.repository.MemberRepository;
 import com.oceandate.backend.global.exception.CustomException;
 import com.oceandate.backend.global.exception.constant.ErrorCode;
+import com.oceandate.backend.global.sms.SmsService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -29,6 +32,10 @@ public class TravelService {
     private final TravelRepository travelRepository;
     private final TravelEventRepository travelEventRepository;
     private final MemberRepository memberRepository;
+    private final SmsService smsService;
+
+    @Value("${app.frontend-url:http://localhost:3000}")
+    private String frontendUrl;
 
     /**
      * 여행 소개팅 신청 (이전 신청서가 있으면 업데이트)
@@ -133,5 +140,84 @@ public class TravelService {
     public Travel getApplication(Long applicationId) {
         return travelRepository.findById(applicationId)
                 .orElseThrow(() -> new CustomException(ErrorCode.APPLICATION_NOT_FOUND));
+    }
+
+    /**
+     * 관리자용 - 신청자 목록 조회
+     */
+    @Transactional(readOnly = true)
+    public List<Travel> getApplications(Long eventId, ApplicationStatus status) {
+        if (eventId != null) {
+            TravelEvent event = travelEventRepository.findById(eventId)
+                    .orElseThrow(() -> new CustomException(ErrorCode.EVENT_NOT_FOUND));
+
+            if (status != null) {
+                return travelRepository.findByEventAndStatus(event, status);
+            }
+            return travelRepository.findByEvent(event);
+        }
+
+        if (status != null) {
+            return travelRepository.findByStatus(status);
+        }
+        return travelRepository.findAll();
+    }
+
+    /**
+     * 관리자용 - 신청 상태 변경
+     */
+    @Transactional
+    public void updateStatus(Long applicationId, ApplicationStatus status) {
+        Travel application = travelRepository.findById(applicationId)
+                .orElseThrow(() -> new CustomException(ErrorCode.APPLICATION_NOT_FOUND));
+
+        // 승인 시 처리
+        if (status == ApplicationStatus.APPROVED) {
+            TravelEvent event = application.getEvent();
+
+            // 성별별 인원 제한 확인
+            Sex memberSex = application.getMember().getSex();
+            if (Sex.MAN.equals(memberSex) && !event.canApproveMale()) {
+                throw new CustomException(ErrorCode.MALE_CAPACITY_FULL);
+            }
+            if (Sex.WOMAN.equals(memberSex) && !event.canApproveFemale()) {
+                throw new CustomException(ErrorCode.FEMALE_CAPACITY_FULL);
+            }
+
+            // 승인 인원 증가
+            event.incrementApprovedCount(memberSex);
+            application.setApprovedAt(LocalDateTime.now());
+
+            // 승인 시 결제 링크가 포함된 SMS 전송
+            String paymentUrl = String.format("%s/payment/%s", frontendUrl, application.getOrderId());
+            smsService.sendPaymentLinkSms(
+                    application.getMember().getPhoneNumber(),
+                    application.getMember().getName(),
+                    application.getOrderId(),
+                    paymentUrl
+            );
+        }
+
+        // 상태 변경
+        application.setStatus(status);
+    }
+
+    /**
+     * 관리자용 - 여행 소개팅 취소
+     */
+    @Transactional
+    public void cancelApplication(Long applicationId, String reason) {
+        Travel application = travelRepository.findById(applicationId)
+                .orElseThrow(() -> new CustomException(ErrorCode.APPLICATION_NOT_FOUND));
+
+        // 승인된 신청인 경우 인원 수 감소
+        if (application.getStatus() == ApplicationStatus.APPROVED ||
+            application.getStatus() == ApplicationStatus.PAYMENT_COMPLETED) {
+            TravelEvent event = application.getEvent();
+            event.decrementApprovedCount(application.getMember().getSex());
+        }
+
+        // 취소 처리
+        application.cancel(reason, 0);
     }
 }

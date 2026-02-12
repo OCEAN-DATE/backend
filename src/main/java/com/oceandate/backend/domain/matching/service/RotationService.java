@@ -20,8 +20,10 @@ import com.oceandate.backend.domain.user.repository.MemberRepository;
 import com.oceandate.backend.global.exception.CustomException;
 import com.oceandate.backend.global.exception.constant.ErrorCode;
 import com.oceandate.backend.global.jwt.AccountContext;
+import com.oceandate.backend.global.sms.SmsService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.parameters.P;
 import org.springframework.stereotype.Service;
 
@@ -38,6 +40,10 @@ public class RotationService {
     private final RotationEventRepository rotationEventRepository;
     private final MemberRepository memberRepository;
     private final PaymentService paymentService;
+    private final SmsService smsService;
+
+    @Value("${app.frontend-url:http://localhost:3000}")
+    private String frontendUrl;
 
     @Transactional
     public RotationResponse createApplication(
@@ -94,6 +100,15 @@ public class RotationService {
         if (status == ApplicationStatus.APPROVED) {
             application.getEvent().incrementApprovedCount(application.getMember().getSex());
             application.setApprovedAt(LocalDateTime.now());
+
+            // 승인 시 결제 링크가 포함된 SMS 전송
+            String paymentUrl = String.format("%s/payment/%s", frontendUrl, application.getOrderId());
+            smsService.sendPaymentLinkSms(
+                    application.getMember().getPhoneNumber(),
+                    application.getMember().getName(),
+                    application.getOrderId(),
+                    paymentUrl
+            );
         }
         application.setStatus(status);
     }

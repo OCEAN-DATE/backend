@@ -54,7 +54,7 @@ public class OneToOneController {
 
     @Operation(summary = "[관리자] 일대일 소개팅 신청 목록 조회", description = "status를 null로 두면 전체 목록 조회")
     @GetMapping("/applications")
-//    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<OneToOneResponse>> getApplications(
             @RequestParam(required = false) ApplicationStatus status){
 
@@ -65,7 +65,7 @@ public class OneToOneController {
 
     @Operation(summary = "[관리자] 일대일 소개팅 신청 상세 조회")
     @GetMapping("/applications/{applicationId}")
-//    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<OneToOneResponse> getApplicationDetail(
             @PathVariable Long applicationId
     ){
@@ -75,7 +75,7 @@ public class OneToOneController {
 
     @Operation(summary = "[관리자] 일대일 소개팅 신청 상태 변경")
     @PatchMapping("/application/{id}/status")
-//    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> updateStatus(
             @PathVariable Long id,
             @RequestParam ApplicationStatus status){
@@ -114,7 +114,7 @@ public class OneToOneController {
     }
 
     @Operation(summary = "[관리자] 일대일 소개팅 이벤트 생성", description = "이미지는 선택사항입니다. 이미지를 보내지 않을 경우 필드를 비활성화하거나 제외해주세요.")
-//    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping(value = "/event", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<OneToOneEvent> createEvent(
             @ModelAttribute OneToOneEventRequest request
@@ -135,7 +135,7 @@ public class OneToOneController {
     }
 
     @Operation(summary = "[관리자] 일대일 소개팅 이벤트 삭제")
-    //    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/event/{eventId}")
     public ResponseEntity<String> deleteEvent(@PathVariable Long eventId){
         oneToOneService.deleteEvent(eventId);
@@ -143,7 +143,7 @@ public class OneToOneController {
     }
 
     @Operation(summary = "[관리자] 일대일 소개팅 매칭")
-//    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/matching")
     public ResponseEntity<String> createMatching(
             @RequestBody MatchingCreateRequest request){
@@ -152,7 +152,7 @@ public class OneToOneController {
     }
 
     @Operation(summary = "[관리자] 공통 선호 날짜 조회", description = "남, 여 한 명씩 선택 시 두 신청자의 공통 선호 날짜 반환")
-//    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/preferredDates")
     public ResponseEntity<List<LocalDate>> getPreferredDates(Long maleApplicationId, Long femaleApplicationId){
         List<LocalDate> response = matchingService.getCommonPreferredDates(maleApplicationId, femaleApplicationId);

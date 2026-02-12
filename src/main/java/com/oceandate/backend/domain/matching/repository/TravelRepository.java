@@ -21,6 +21,8 @@ public interface TravelRepository extends JpaRepository<Travel, Long> {
 
     List<Travel> findByEvent(TravelEvent event);
 
+    List<Travel> findByStatus(ApplicationStatus status);
+
     Page<Travel> findByEventAndStatus(
             TravelEvent event,
             ApplicationStatus status,
