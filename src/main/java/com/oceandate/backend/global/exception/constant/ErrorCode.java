@@ -23,6 +23,7 @@ public enum ErrorCode {
     DIFFERENT_EVENT_APPLICATION("MATCHING_400", "다른 이벤트의 신청서입니다."),
     ALREADY_MATCHED("MATCHING_409", "이미 매칭된 신청서입니다."),
     INVALID_MATCHING_STATUS("MATCHING_400", "매칭 가능한 상태가 아닙니다."),
+    MATCHING_NOT_FOUND("MATCHING_404", "매칭 상대를 찾을 수 없습니다."),
 
     // 이벤트
     EVENT_NOT_FOUND("EVENT_404", "이벤트를 찾을 수 없습니다."),
@@ -88,7 +89,15 @@ public enum ErrorCode {
     UNKNOWN_PAYMENT_ERROR("TOSS_028", "알 수 없는 결제 오류가 발생했습니다"),
 
     // 파일
-    FILE_UPLOAD_FAILED("FILE_500", "파일 업로드에 실패했습니다.");
+    FILE_UPLOAD_FAILED("FILE_500", "파일 업로드에 실패했습니다."),
+
+    // 쿠폰
+    COUPON_NOT_FOUND("COUPON_404", "쿠폰을 찾을 수 없습니다."),
+    DUPLICATE_COUPON_CODE("COUPON_409", "이미 존재하는 쿠폰 코드입니다."),
+    COUPON_NOT_ACTIVE("COUPON_400", "비활성화된 쿠폰입니다."),
+    COUPON_ALREADY_ISSUED("COUPON_409", "이미 발급받은 쿠폰입니다."),
+    COUPON_EXPIRED("COUPON_400", "만료된 쿠폰입니다."),
+    COUPON_ALREADY_USED("COUPON_400", "이미 사용된 쿠폰입니다.");
 
     private final String code;
     private final String message;

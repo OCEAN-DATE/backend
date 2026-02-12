@@ -17,8 +17,10 @@ import com.oceandate.backend.domain.user.repository.MemberRepository;
 import com.oceandate.backend.global.exception.CustomException;
 import com.oceandate.backend.global.exception.constant.ErrorCode;
 import com.oceandate.backend.global.jwt.AccountContext;
+import com.oceandate.backend.global.sms.SmsService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.parameters.P;
 import org.springframework.stereotype.Service;
 
@@ -35,6 +37,10 @@ public class RotationService {
     private final RotationEventRepository rotationEventRepository;
     private final MemberRepository memberRepository;
     private final PaymentService paymentService;
+    private final SmsService smsService;
+
+    @Value("${app.frontend-url:http://localhost:3000}")
+    private String frontendUrl;
 
     @Transactional
     public RotationResponse createApplication(
@@ -72,7 +78,6 @@ public class RotationService {
                 .introduction(request.getIntroduction())
                 .orderId(orderId)
                 .status(ApplicationStatus.PAYMENT_PENDING)
-                .confirmedDate(event.getEventDateTime())
                 .build();
 
         rotationRepository.save(application);
@@ -85,15 +90,27 @@ public class RotationService {
     }
 
     @Transactional
-    public void updateStatus(Long id, ApplicationStatus status) {
-        Rotation application = rotationRepository.findById(id)
-                .orElseThrow(() -> new CustomException(ErrorCode.APPLICATION_NOT_FOUND));
-        if (status == ApplicationStatus.APPROVED) {
-            application.getEvent().incrementApprovedCount(application.getMember().getSex());
-            application.setApprovedAt(LocalDateTime.now());
-        }
-        application.setStatus(status);
+public void updateStatus(Long id, ApplicationStatus status) {
+    Rotation application = rotationRepository.findById(id)
+            .orElseThrow(() -> new CustomException(ErrorCode.APPLICATION_NOT_FOUND));
+    
+    if (status == ApplicationStatus.APPROVED) {
+        // 인원 카운트 증가 및 승인 시간/확정 날짜 세팅
+        application.getEvent().incrementApprovedCount(application.getMember().getSex());
+        application.setApprovedAt(LocalDateTime.now());
+        application.setConfirmedDate(application.getEvent().getEventDateTime()); // main 로직
+
+        // 승인 시 결제 링크가 포함된 SMS 전송 (feat/login 로직)
+        String paymentUrl = String.format("%s/payment/%s", frontendUrl, application.getOrderId());
+        smsService.sendPaymentLinkSms(
+                application.getMember().getPhoneNumber(),
+                application.getMember().getName(),
+                application.getOrderId(),
+                paymentUrl
+        );
     }
+    application.setStatus(status);
+}
 
     public List<RotationResponse> getApplications(Long eventId, ApplicationStatus status) {
         List<Rotation> applications;
@@ -158,11 +175,11 @@ public class RotationService {
         Rotation application = rotationRepository.findByEventIdAndApplicationId(eventId, applicationId)
                 .orElseThrow(() -> new CustomException(ErrorCode.APPLICATION_NOT_FOUND));
 
-        if(!application.getMember().getId().equals(accountContext.getMemberId())){
+        if (!application.getMember().getId().equals(accountContext.getMemberId())) {
             throw new CustomException(ErrorCode.ACCESS_DENIED);
         }
 
-        if(!application.getStatus().isCancellable()){
+        if (!application.getStatus().isCancellable()) {
             throw new CustomException(ErrorCode.INVALID_CANCEL_STATUS);
         }
 
@@ -170,10 +187,14 @@ public class RotationService {
         int refundRate = 0;
         String refundReason = "결제 전 취소";
 
-        if(application.getStatus().isRefundRequired()) {
+        if (application.getStatus().isRefundRequired()) {
             RotationEvent event = application.getEvent();
-            RefundPolicy.RefundAmount refund = RefundPolicy.calculateRotationRefund(
-                    event.getEventDateTime(),
+
+            LocalDateTime paymentDate = application.getPaidAt();
+
+            RefundPolicy.RefundAmount refund = RefundPolicy.calculate(
+                    application.getConfirmedDate(),
+                    paymentDate,
                     LocalDateTime.now(),
                     application.getAmount()
             );
@@ -182,29 +203,45 @@ public class RotationService {
             refundRate = refund.getRate();
             refundReason = refund.getReason();
 
-            if(refundAmount > 0){
+            if (refundAmount > 0) {
                 PaymentCancelRequest cancelRequest = PaymentCancelRequest.builder()
-                                        .paymentKey(application.getPaymentKey())
-                                        .cancelReason(refundReason)
-                                        .cancelAmount(refundAmount)
-                                        .build();
+                        .paymentKey(application.getPaymentKey())
+                        .cancelReason(refundReason)
+                        .cancelAmount(refundAmount)
+                        .build();
 
                 paymentService.cancelPayment(accountContext, cancelRequest);
             }
         }
 
-        application.setStatus(ApplicationStatus.CANCELLED);
-        application.setCancelledAt(LocalDateTime.now());
-        application.setCancelReason(cancelReason != null ? cancelReason : "사용자 요청");
-        application.setRefundAmount(refundAmount);
-
-        if (refundAmount > 0) {
-            application.setRefundedAt(LocalDateTime.now());
-        }
+        application.cancel(cancelReason != null ? cancelReason : "사용자 요청", refundAmount);
 
         return RefundResponse.of(applicationId, refundAmount, refundRate, refundReason);
     }
 
+/**
+     * 관리자용 - 로테이션 소개팅 취소 (feat/login)
+     */
+    @Transactional
+    public void cancelApplication(Long applicationId, String reason) {
+        Rotation application = rotationRepository.findById(applicationId)
+                .orElseThrow(() -> new CustomException(ErrorCode.APPLICATION_NOT_FOUND));
+
+        // 승인된 신청인 경우 인원 수 감소
+        if (application.getStatus() == ApplicationStatus.APPROVED || 
+            application.getStatus() == ApplicationStatus.PAYMENT_COMPLETED) {
+            RotationEvent event = application.getEvent();
+            // 주의: 이전에 발생한 타입 에러 해결을 위해 필요시 .name() 추가
+            event.decrementApprovedCount(application.getMember().getSex()); 
+        }
+
+        // 취소 처리
+        application.cancel(reason, 0);
+    }
+
+    /**
+     * 이전 신청 정보 조회 (main)
+     */
     public RotationResponse getPreviousApplication(AccountContext accountContext) {
         return rotationRepository
                 .findFirstByMemberIdOrderByCreatedAtDesc(accountContext.getMemberId())

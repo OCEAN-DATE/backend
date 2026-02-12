@@ -8,7 +8,6 @@ import com.oceandate.backend.domain.matching.service.OneToOneEventService;
 import com.oceandate.backend.domain.matching.service.OneToOneMatchingService;
 import com.oceandate.backend.domain.matching.service.OneToOneService;
 import com.oceandate.backend.domain.payment.dto.RefundResponse;
-import com.oceandate.backend.domain.user.entity.Member;
 import com.oceandate.backend.domain.user.repository.MemberRepository;
 import com.oceandate.backend.global.jwt.AccountContext;
 import io.swagger.v3.oas.annotations.Operation;
@@ -41,9 +40,6 @@ public class OneToOneController {
             @AuthenticationPrincipal AccountContext accountContext) {
         Long userId = accountContext.getMemberId();
 
-        Member user = memberRepository.findById(userId).
-                orElseThrow(() -> new IllegalArgumentException("사용자가 존재하지 않습니다."));
-
         oneToOneService.createApplication(userId, request);
 
         return ResponseEntity.ok("신청이 완료되었습니다.");
@@ -51,7 +47,7 @@ public class OneToOneController {
 
     @Operation(summary = "[관리자] 일대일 소개팅 신청 목록 조회", description = "status를 null로 두면 전체 목록 조회")
     @GetMapping("/applications")
-//    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<OneToOneResponse>> getApplications(
             @RequestParam(required = false) ApplicationStatus status){
 
@@ -62,7 +58,7 @@ public class OneToOneController {
 
     @Operation(summary = "[관리자] 일대일 소개팅 신청 상세 조회")
     @GetMapping("/applications/{applicationId}")
-//    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<OneToOneResponse> getApplicationDetail(
             @PathVariable Long applicationId
     ){
@@ -72,7 +68,7 @@ public class OneToOneController {
 
     @Operation(summary = "[관리자] 일대일 소개팅 신청 상태 변경")
     @PatchMapping("/application/{id}/status")
-//    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> updateStatus(
             @PathVariable Long id,
             @RequestParam ApplicationStatus status){
@@ -105,7 +101,7 @@ public class OneToOneController {
     }
 
     @Operation(summary = "[관리자] 일대일 소개팅 이벤트 생성", description = "이미지는 선택사항입니다. 이미지를 보내지 않을 경우 필드를 비활성화하거나 제외해주세요.")
-//    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping(value = "/event", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<OneToOneEvent> createEvent(
             @ModelAttribute OneToOneEventRequest request
@@ -115,7 +111,7 @@ public class OneToOneController {
         return ResponseEntity.ok(event);
     }
 
-    @Operation(summary = "일대일 소개팅 이벤트 목록 조회")
+    @Operation(summary = "일대일 소개팅 이벤트 목록 조회", description = "imageUrl, reviews는 목록 조회 시 응답에 포함되지 않습니다.")
     @GetMapping("/event")
     public ResponseEntity<List<OneToOneEventResponse>> getEvents(
             @RequestParam(required = false) EventStatus status
@@ -135,7 +131,7 @@ public class OneToOneController {
         return ResponseEntity.ok(response);
     }
     @Operation(summary = "[관리자] 일대일 소개팅 이벤트 삭제")
-    //    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/event/{eventId}")
     public ResponseEntity<String> deleteEvent(@PathVariable Long eventId){
         oneToOneEventService.deleteEvent(eventId);
@@ -152,7 +148,7 @@ public class OneToOneController {
     }
 
     @Operation(summary = "[관리자] 일대일 소개팅 매칭")
-//    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/matching")
     public ResponseEntity<String> createMatching(
             @RequestBody MatchingCreateRequest request){
@@ -161,7 +157,7 @@ public class OneToOneController {
     }
 
     @Operation(summary = "[관리자] 공통 선호 날짜 조회", description = "남, 여 한 명씩 선택 시 두 신청자의 공통 선호 날짜 반환")
-//    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/preferredDates")
     public ResponseEntity<List<LocalDate>> getPreferredDates(Long maleApplicationId, Long femaleApplicationId){
         List<LocalDate> response = matchingService.getCommonPreferredDates(maleApplicationId, femaleApplicationId);

@@ -119,10 +119,10 @@ public class RotationEvent {
         }
     }
 
-    public void decrementApprovedCount(String gender) {
-        if ("남성".equals(gender) && this.approvedMaleCount > 0) {
+    public void decrementApprovedCount(Sex sex) {
+        if (sex == Sex.MAN && this.approvedMaleCount > 0) {
             this.approvedMaleCount--;
-        } else if ("여성".equals(gender) && this.approvedFemaleCount > 0) {
+        } else if (sex == Sex.WOMAN && this.approvedFemaleCount > 0) {
             this.approvedFemaleCount--;
         }
 

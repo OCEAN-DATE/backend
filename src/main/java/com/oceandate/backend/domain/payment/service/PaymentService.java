@@ -26,6 +26,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Service;
 
 import java.net.http.HttpResponse;
+import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 @Service
 @RequiredArgsConstructor
@@ -90,11 +92,13 @@ public class PaymentService {
                 try {
                     application.setPaymentKey(request.getPaymentKey());
                     application.setStatus(ApplicationStatus.PAYMENT_COMPLETED);
+                    application.setPaidAt(LocalDateTime.now());
+
                     repository.save(application);
                     repository.flush();
 
-                    log.info("결제 승인 완료 - orderId: {}, paymentKey: {}",
-                            request.getOrderId(), request.getPaymentKey());
+                    log.info("결제 승인 완료 - orderId: {}, paymentKey: {}, paidAt: {}",
+                            request.getOrderId(), request.getPaymentKey(), application.getPaidAt());
 
                     return confirmResponse;
 
@@ -176,36 +180,28 @@ public class PaymentService {
     }
 
     public String cancelPayment(AccountContext accountContext, PaymentCancelRequest request) {
-        Member member = memberRepository.findById(accountContext.getMemberId())
-                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
+        Matching application = oneToOneRepository.findByPaymentKey(request.getPaymentKey())
+                .<Matching>map(a -> a)
+                .orElseGet(() -> rotationRepository.findByPaymentKey(request.getPaymentKey())
+                        .orElseThrow(() -> new CustomException(ErrorCode.APPLICATION_NOT_FOUND)));
 
-        OneToOne application = oneToOneRepository.findByPaymentKey(request.getPaymentKey())
-                .orElseThrow(() -> new CustomException(ErrorCode.APPLICATION_NOT_FOUND));
-
-        if(!application.getMember().getId().equals(member.getId())){
-            throw new CustomException(ErrorCode.ACCESS_DENIED);
-        }
-
-        if(application.getStatus() != ApplicationStatus.PAYMENT_COMPLETED){
+        if (application.getStatus() != ApplicationStatus.PAYMENT_COMPLETED
+                && application.getStatus() != ApplicationStatus.MATCHED) {
             throw new CustomException(ErrorCode.INVALID_CANCEL_STATUS);
         }
 
         try {
             HttpResponse<String> response = tossPaymentClient.cancelPayment(request);
 
-            if(response.statusCode() == 200){
-                application.setStatus(ApplicationStatus.CANCELLED);
+            if (response.statusCode() == 200) {
                 return response.body();
-            }
-            else {
+            } else {
                 String tossErrorCode = objectMapper.readTree(response.body()).get("code").asText();
                 throw new CustomException(TossErrorMapper.fromTossErrorCode(tossErrorCode));
             }
-        }
-        catch(CustomException e){
+        } catch (CustomException e) {
             throw e;
-        }
-        catch(Exception e){
+        } catch (Exception e) {
             throw new CustomException(ErrorCode.PROVIDER_ERROR);
         }
     }
