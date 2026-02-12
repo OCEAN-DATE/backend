@@ -89,7 +89,15 @@ public enum ErrorCode {
     UNKNOWN_PAYMENT_ERROR("TOSS_028", "알 수 없는 결제 오류가 발생했습니다"),
 
     // 파일
-    FILE_UPLOAD_FAILED("FILE_500", "파일 업로드에 실패했습니다.");
+    FILE_UPLOAD_FAILED("FILE_500", "파일 업로드에 실패했습니다."),
+
+    // 쿠폰
+    COUPON_NOT_FOUND("COUPON_404", "쿠폰을 찾을 수 없습니다."),
+    DUPLICATE_COUPON_CODE("COUPON_409", "이미 존재하는 쿠폰 코드입니다."),
+    COUPON_NOT_ACTIVE("COUPON_400", "비활성화된 쿠폰입니다."),
+    COUPON_ALREADY_ISSUED("COUPON_409", "이미 발급받은 쿠폰입니다."),
+    COUPON_EXPIRED("COUPON_400", "만료된 쿠폰입니다."),
+    COUPON_ALREADY_USED("COUPON_400", "이미 사용된 쿠폰입니다.");
 
     private final String code;
     private final String message;
