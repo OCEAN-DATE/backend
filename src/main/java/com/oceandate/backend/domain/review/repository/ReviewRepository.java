@@ -2,7 +2,9 @@ package com.oceandate.backend.domain.review.repository;
 
 import com.oceandate.backend.domain.matching.enums.MatchingType;
 import com.oceandate.backend.domain.review.entity.Review;
+import com.oceandate.backend.domain.user.entity.Member;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -38,4 +40,10 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
      * 특정 매칭에 대한 모든 리뷰 조회
      */
     List<Review> findByMatchingTypeAndMatchingId(MatchingType matchingType, Long matchingId);
+
+    /**
+     * 후기를 작성한 모든 유저 조회 (중복 제거)
+     */
+    @Query("SELECT DISTINCT r.writer FROM Review r")
+    List<Member> findAllReviewWriters();
 }

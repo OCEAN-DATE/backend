@@ -6,6 +6,7 @@ import com.oceandate.backend.domain.payment.entity.MemberCoupon;
 import com.oceandate.backend.domain.payment.enums.CouponStatus;
 import com.oceandate.backend.domain.payment.repository.CouponRepository;
 import com.oceandate.backend.domain.payment.repository.MemberCouponRepository;
+import com.oceandate.backend.domain.review.repository.ReviewRepository;
 import com.oceandate.backend.domain.user.entity.Member;
 import com.oceandate.backend.domain.user.repository.MemberRepository;
 import com.oceandate.backend.global.exception.CustomException;
@@ -27,6 +28,7 @@ public class CouponService {
     private final CouponRepository couponRepository;
     private final MemberCouponRepository memberCouponRepository;
     private final MemberRepository memberRepository;
+    private final ReviewRepository reviewRepository;
 
     /**
      * 쿠폰 생성
@@ -173,8 +175,12 @@ public class CouponService {
 
         List<Member> members;
 
+        // 후기 작성자들에게만 발급
+        if (Boolean.TRUE.equals(request.getIsReviewWriters())) {
+            members = reviewRepository.findAllReviewWriters();
+        }
         // memberIds가 있으면 특정 사용자들에게 발급
-        if (request.getMemberIds() != null && !request.getMemberIds().isEmpty()) {
+        else if (request.getMemberIds() != null && !request.getMemberIds().isEmpty()) {
             members = memberRepository.findAllById(request.getMemberIds());
         }
         // 없으면 전체 사용자에게 발급
