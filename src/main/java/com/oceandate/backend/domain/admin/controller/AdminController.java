@@ -4,11 +4,14 @@ import com.oceandate.backend.domain.admin.dto.response.UserListResponse;
 import com.oceandate.backend.domain.admin.service.AdminService;
 import com.oceandate.backend.domain.matching.dto.AccommodationDto;
 import com.oceandate.backend.domain.matching.dto.RotationResponse;
+import com.oceandate.backend.domain.matching.dto.TravelEventRequest;
+import com.oceandate.backend.domain.matching.dto.TravelEventResponse;
 import com.oceandate.backend.domain.matching.dto.TravelScheduleDto;
 import com.oceandate.backend.domain.matching.entity.Accommodation;
 import com.oceandate.backend.domain.matching.entity.Travel;
 import com.oceandate.backend.domain.matching.entity.TravelSchedule;
 import com.oceandate.backend.domain.matching.enums.ApplicationStatus;
+import com.oceandate.backend.domain.matching.enums.EventStatus;
 import com.oceandate.backend.domain.matching.service.RotationService;
 import com.oceandate.backend.domain.matching.service.TravelEventService;
 import com.oceandate.backend.domain.matching.service.TravelService;
@@ -41,6 +44,64 @@ public class AdminController {
     ) {
         List<UserListResponse> users = adminService.getUserList(includeBlacklisted);
         return ResponseEntity.ok(users);
+    }
+
+    // ============= 여행 이벤트 관리 (생성, 수정, 삭제, 상태 변경) =============
+
+    @Operation(summary = "[관리자] 여행 이벤트 생성", description = "새로운 여행 이벤트를 생성합니다")
+    @PostMapping("/travel/events")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<TravelEventResponse> createTravelEvent(
+            @RequestBody TravelEventRequest request
+    ) {
+        TravelEventResponse response = travelEventService.createEvent(request);
+        return ResponseEntity.ok(response);
+    }
+
+    @Operation(summary = "[관리자] 여행 이벤트 수정", description = "여행 이벤트 정보를 수정합니다")
+    @PutMapping("/travel/events/{eventId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<TravelEventResponse> updateTravelEvent(
+            @PathVariable Long eventId,
+            @RequestBody TravelEventRequest request
+    ) {
+        TravelEventResponse response = travelEventService.updateEvent(eventId, request);
+        return ResponseEntity.ok(response);
+    }
+
+    @Operation(summary = "[관리자] 여행 이벤트 삭제", description = "여행 이벤트를 삭제합니다 (상태를 DELETED로 변경)")
+    @DeleteMapping("/travel/events/{eventId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Void> deleteTravelEvent(@PathVariable Long eventId) {
+        travelEventService.deleteEvent(eventId);
+        return ResponseEntity.ok().build();
+    }
+
+    @Operation(summary = "[관리자] 여행 이벤트 상태 변경", description = "여행 이벤트의 상태를 변경합니다 (OPEN, CLOSED, IN_PROGRESS, COMPLETED, DELETED)")
+    @PatchMapping("/travel/events/{eventId}/status")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<TravelEventResponse> updateTravelEventStatus(
+            @PathVariable Long eventId,
+            @RequestParam EventStatus status
+    ) {
+        TravelEventResponse response = travelEventService.updateEventStatus(eventId, status);
+        return ResponseEntity.ok(response);
+    }
+
+    @Operation(summary = "[관리자] 여행 이벤트 목록 조회", description = "모든 여행 이벤트 목록을 조회합니다")
+    @GetMapping("/travel/events")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<TravelEventResponse>> getTravelEvents() {
+        List<TravelEventResponse> events = travelEventService.getAllEvents();
+        return ResponseEntity.ok(events);
+    }
+
+    @Operation(summary = "[관리자] 여행 이벤트 상세 조회", description = "특정 여행 이벤트의 상세 정보를 조회합니다")
+    @GetMapping("/travel/events/{eventId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<TravelEventResponse> getTravelEventDetail(@PathVariable Long eventId) {
+        TravelEventResponse response = travelEventService.getEventDetail(eventId);
+        return ResponseEntity.ok(response);
     }
 
     // ============= 여행 소개팅 관리 =============

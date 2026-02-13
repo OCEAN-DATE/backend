@@ -3,11 +3,13 @@ package com.oceandate.backend.domain.mypage.service;
 import com.oceandate.backend.domain.matching.entity.OneToOne;
 import com.oceandate.backend.domain.matching.entity.OneToOneMatching;
 import com.oceandate.backend.domain.matching.entity.Rotation;
+import com.oceandate.backend.domain.matching.entity.Travel;
 import com.oceandate.backend.domain.matching.enums.ApplicationStatus;
 import com.oceandate.backend.domain.matching.enums.MatchingType;
 import com.oceandate.backend.domain.matching.repository.OneToOneMatchingRepository;
 import com.oceandate.backend.domain.matching.repository.OneToOneRepository;
 import com.oceandate.backend.domain.matching.repository.RotationRepository;
+import com.oceandate.backend.domain.matching.repository.TravelRepository;
 import com.oceandate.backend.domain.mypage.dto.MyPageMatchingResponse;
 import com.oceandate.backend.domain.review.dto.ReviewResponse;
 import com.oceandate.backend.domain.review.entity.Review;
@@ -33,12 +35,13 @@ public class MyPageService {
 
     private final OneToOneRepository oneToOneRepository;
     private final RotationRepository rotationRepository;
+    private final TravelRepository travelRepository;
     private final OneToOneMatchingRepository oneToOneMatchingRepository;
     private final ReviewRepository reviewRepository;
     private final MemberRepository memberRepository;
 
     /**
-     * 내 매칭 목록 조회 (OneToOne + Rotation)
+     * 내 매칭 목록 조회 (OneToOne + Rotation + Travel)
      */
     public List<MyPageMatchingResponse> getMyMatchings(Long memberId) {
         log.info("마이페이지 매칭 목록 조회 - memberId: {}", memberId);
@@ -58,6 +61,12 @@ public class MyPageService {
         List<Rotation> rotations = rotationRepository.findByMember(member);
         for (Rotation rotation : rotations) {
             responses.add(buildRotationResponse(rotation, memberId));
+        }
+
+        // 여행 소개팅 목록 조회
+        List<Travel> travels = travelRepository.findByMember(member);
+        for (Travel travel : travels) {
+            responses.add(buildTravelResponse(travel, memberId));
         }
 
         // 최신순 정렬
@@ -104,6 +113,23 @@ public class MyPageService {
         // 로테이션은 여러 명과 만나므로 상대방 정보는 null
         // 리뷰 정보 설정
         setReviewInfo(builder, memberId, MatchingType.ROTATION, rotation.getId(), rotation.getStatus(), rotation.getEvent().getEventName());
+
+        return builder.build();
+    }
+
+    /**
+     * 여행 소개팅 응답 생성
+     */
+    private MyPageMatchingResponse buildTravelResponse(Travel travel, Long memberId) {
+        MyPageMatchingResponse.MyPageMatchingResponseBuilder builder = MyPageMatchingResponse.builder()
+                .matchingId(travel.getId())
+                .matchingType(MatchingType.TRAVEL)
+                .status(travel.getStatus())
+                .eventName(travel.getEvent().getEventName())
+                .createdAt(travel.getCreatedAt());
+
+        // 리뷰 정보 설정
+        setReviewInfo(builder, memberId, MatchingType.TRAVEL, travel.getId(), travel.getStatus(), travel.getEvent().getEventName());
 
         return builder.build();
     }
