@@ -56,15 +56,11 @@ public class OneToOneEventService {
     public List<OneToOneEventResponse> getEvents(EventStatus status) {
         List<OneToOneEvent> response;
 
-        if(status == null){
-           response = oneToOneEventRepository.findAll();
-
-           return response.stream()
-                   .map(OneToOneEventResponse::from)
-                   .collect(Collectors.toList());
+        if (status == null) {
+            response = oneToOneEventRepository.findByStatusNot(EventStatus.DELETED);
+        } else {
+            response = oneToOneEventRepository.findByStatus(status);
         }
-
-        response = oneToOneEventRepository.findByStatus(status);
 
         return response.stream()
                 .map(OneToOneEventResponse::from)

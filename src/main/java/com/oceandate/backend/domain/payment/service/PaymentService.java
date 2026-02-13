@@ -15,6 +15,7 @@ import com.oceandate.backend.domain.payment.dto.PaymentConfirmRequest;
 import com.oceandate.backend.domain.payment.dto.PaymentConfirmResponse;
 import com.oceandate.backend.domain.payment.util.TossErrorMapper;
 import com.oceandate.backend.domain.user.entity.Member;
+import com.oceandate.backend.domain.user.entity.Role;
 import com.oceandate.backend.domain.user.repository.MemberRepository;
 import com.oceandate.backend.global.exception.CustomException;
 import com.oceandate.backend.global.exception.constant.ErrorCode;
@@ -155,7 +156,7 @@ public class PaymentService {
         OneToOne application = oneToOneRepository.findByOrderId(orderId)
                 .orElseThrow(() -> new CustomException(ErrorCode.APPLICATION_NOT_FOUND));
 
-        if(!application.getMember().getId().equals(member.getId())){
+        if(!member.getRole().equals(Role.ADMIN) && !application.getMember().getId().equals(member.getId())){
             throw new CustomException(ErrorCode.ACCESS_DENIED);
         }
 
@@ -180,10 +181,17 @@ public class PaymentService {
     }
 
     public String cancelPayment(AccountContext accountContext, PaymentCancelRequest request) {
+        Member member = memberRepository.findById(accountContext.getMemberId())
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
+
         Matching application = oneToOneRepository.findByPaymentKey(request.getPaymentKey())
                 .<Matching>map(a -> a)
                 .orElseGet(() -> rotationRepository.findByPaymentKey(request.getPaymentKey())
                         .orElseThrow(() -> new CustomException(ErrorCode.APPLICATION_NOT_FOUND)));
+
+        if(!member.getRole().equals(Role.ADMIN) && !application.getMember().getId().equals(member.getId())){
+            throw new CustomException(ErrorCode.ACCESS_DENIED);
+        }
 
         if (application.getStatus() != ApplicationStatus.PAYMENT_COMPLETED
                 && application.getStatus() != ApplicationStatus.MATCHED) {

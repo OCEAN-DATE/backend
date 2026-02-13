@@ -22,4 +22,6 @@ public interface RotationEventRepository extends JpaRepository<RotationEvent, Lo
     List<RotationEvent> findByStatusAndEventDateTimeBefore(EventStatus status, LocalDateTime dateTime);
 
     List<RotationEvent> findByEventDateTimeBetween(LocalDateTime start, LocalDateTime end);
+
+    List<RotationEvent> findByStatusNot(EventStatus eventStatus);
 }

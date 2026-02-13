@@ -136,7 +136,7 @@ public void updateStatus(Long id, ApplicationStatus status) {
     public List<RotationEventResponse> getEvents(EventStatus status) {
         List<RotationEvent> events;
         if(status == null){
-            events = rotationEventRepository.findAll();
+            events = rotationEventRepository.findByStatusNot(EventStatus.DELETED);
         }
         else {
             events = rotationEventRepository.findByStatus(status);
