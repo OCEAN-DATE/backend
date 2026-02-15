@@ -40,12 +40,6 @@ public abstract class Matching {
     @Column(nullable = false, unique = true)
     private String orderId;
 
-    @Column
-    private String paymentKey;
-
-    @Column
-    private Integer amount;
-
     @Column(name = "confirmed_date")
     private LocalDateTime confirmedDate;
 
@@ -59,19 +53,10 @@ public abstract class Matching {
     protected LocalDateTime updatedAt;
 
     @Column
-    private LocalDateTime paidAt;
-
-    @Column
     private LocalDateTime cancelledAt;
 
     @Column
     private String cancelReason;
-
-    @Column
-    private Integer refundAmount;
-
-    @Column
-    private LocalDateTime refundedAt;
 
     @PrePersist
     protected void onCreate() {
@@ -91,9 +76,5 @@ public abstract class Matching {
         this.status = ApplicationStatus.CANCELLED;
         this.cancelledAt = LocalDateTime.now();
         this.cancelReason = reason;
-        this.refundAmount = refundAmount;
-        if (refundAmount != null && refundAmount > 0) {
-            this.refundedAt = LocalDateTime.now();
-        }
     }
 }

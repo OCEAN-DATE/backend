@@ -3,6 +3,7 @@ package com.oceandate.backend.domain.payment.dto;
 import com.oceandate.backend.domain.matching.entity.Matching;
 import com.oceandate.backend.domain.matching.entity.OneToOne;
 import com.oceandate.backend.domain.matching.enums.ApplicationStatus;
+import com.oceandate.backend.domain.payment.entity.Payment;
 import com.oceandate.backend.domain.payment.enums.PaymentMethod;
 import lombok.*;
 
@@ -21,13 +22,13 @@ public class PaymentConfirmResponse {
     private LocalDateTime paidAt;
     private PaymentMethod method;
 
-    public static PaymentConfirmResponse from(Matching application) {
+    public static PaymentConfirmResponse from(Payment payment, Matching application) {
         return PaymentConfirmResponse.builder()
                 .orderId(application.getOrderId())
-                .paymentKey(application.getPaymentKey())
-                .amount(application.getAmount())
+                .paymentKey(payment.getPaymentKey())
+                .amount(payment.getFinalAmount())
                 .status(application.getStatus())
-                .paidAt(application.getPaidAt())
+                .paidAt(payment.getPaidAt())
                 .build();
     }
 }

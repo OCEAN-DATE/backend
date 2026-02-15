@@ -17,8 +17,6 @@ public interface RotationRepository extends JpaRepository<Rotation, Long> {
 
     boolean existsByMemberAndEvent(Member user, RotationEvent event);
 
-    List<Rotation> findByStatus(ApplicationStatus status);
-
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT o FROM Rotation o WHERE o.orderId = :orderId")
     Optional<Rotation> findByOrderIdWithLock(String orderId);
@@ -41,6 +39,4 @@ public interface RotationRepository extends JpaRepository<Rotation, Long> {
     Optional<Rotation> findByEventIdAndApplicationId(Long eventId, Long applicationId);
 
     Optional<Rotation> findFirstByMemberIdOrderByCreatedAtDesc(Long memberId);
-
-    Optional<Rotation> findByPaymentKey(String paymentKey);
 }

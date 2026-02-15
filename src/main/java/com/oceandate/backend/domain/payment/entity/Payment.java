@@ -1,0 +1,53 @@
+package com.oceandate.backend.domain.payment.entity;
+
+import com.oceandate.backend.domain.matching.enums.MatchingType;
+import com.oceandate.backend.domain.payment.enums.PaymentStatus;
+import jakarta.persistence.*;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.Setter;
+
+import java.time.LocalDateTime;
+
+@Entity
+@Getter
+@Setter
+@Builder
+public class Payment {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(nullable = false, unique = true)
+    private String orderId;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private MatchingType matchingType;
+
+    @Column(nullable = false)
+    private Integer originalAmount;
+
+    @Column(nullable = false)
+    private Integer finalAmount;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "member_coupon_id")
+    private MemberCoupon memberCoupon;
+
+    @Column
+    private String paymentKey;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private PaymentStatus status;
+
+    @Column
+    private LocalDateTime paidAt;
+
+    @Column
+    private Integer refundAmount;
+
+    @Column
+    private LocalDateTime refundedAt;
+}

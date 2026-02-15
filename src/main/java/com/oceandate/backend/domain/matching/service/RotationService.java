@@ -9,6 +9,8 @@ import com.oceandate.backend.domain.matching.repository.RotationEventRepository;
 import com.oceandate.backend.domain.matching.repository.RotationRepository;
 import com.oceandate.backend.domain.payment.dto.PaymentCancelRequest;
 import com.oceandate.backend.domain.payment.dto.RefundResponse;
+import com.oceandate.backend.domain.payment.entity.Payment;
+import com.oceandate.backend.domain.payment.repository.PaymentRepository;
 import com.oceandate.backend.domain.payment.service.PaymentService;
 import com.oceandate.backend.domain.payment.util.RefundPolicy;
 import com.oceandate.backend.domain.user.entity.Member;
@@ -21,7 +23,6 @@ import com.oceandate.backend.global.sms.SmsService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.core.parameters.P;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -36,6 +37,7 @@ public class RotationService {
     private final RotationRepository rotationRepository;
     private final RotationEventRepository rotationEventRepository;
     private final MemberRepository memberRepository;
+    private final PaymentRepository paymentRepository;
     private final PaymentService paymentService;
     private final SmsService smsService;
 
@@ -188,15 +190,16 @@ public void updateStatus(Long id, ApplicationStatus status) {
         String refundReason = "결제 전 취소";
 
         if (application.getStatus().isRefundRequired()) {
-            RotationEvent event = application.getEvent();
+           Payment payment = paymentRepository.findByOrderId(application.getOrderId())
+                   .orElseThrow(() -> new CustomException(ErrorCode.ORDER_NOT_FOUND));
 
-            LocalDateTime paymentDate = application.getPaidAt();
+            LocalDateTime paymentDate = payment.getPaidAt();
 
             RefundPolicy.RefundAmount refund = RefundPolicy.calculate(
                     application.getConfirmedDate(),
                     paymentDate,
                     LocalDateTime.now(),
-                    application.getAmount()
+                    payment.getFinalAmount()
             );
 
             refundAmount = refund.getAmount();
@@ -205,7 +208,7 @@ public void updateStatus(Long id, ApplicationStatus status) {
 
             if (refundAmount > 0) {
                 PaymentCancelRequest cancelRequest = PaymentCancelRequest.builder()
-                        .paymentKey(application.getPaymentKey())
+                        .paymentKey(payment.getPaymentKey())
                         .cancelReason(refundReason)
                         .cancelAmount(refundAmount)
                         .build();

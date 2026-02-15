@@ -14,7 +14,10 @@ import com.oceandate.backend.domain.matching.repository.TravelRepository;
 import com.oceandate.backend.domain.payment.client.TossPaymentClient;
 import com.oceandate.backend.domain.payment.dto.*;
 import com.oceandate.backend.domain.payment.entity.MemberCoupon;
+import com.oceandate.backend.domain.payment.entity.Payment;
+import com.oceandate.backend.domain.payment.enums.PaymentStatus;
 import com.oceandate.backend.domain.payment.repository.MemberCouponRepository;
+import com.oceandate.backend.domain.payment.repository.PaymentRepository;
 import com.oceandate.backend.domain.payment.util.TossErrorMapper;
 import com.oceandate.backend.domain.user.entity.Member;
 import com.oceandate.backend.domain.user.entity.Role;
@@ -43,6 +46,7 @@ public class PaymentService {
     private final RotationRepository rotationRepository;
     private final TravelRepository travelRepository;
     private final MemberCouponRepository memberCouponRepository;
+    private final PaymentRepository paymentRepository;
     private final TossPaymentClient tossPaymentClient;
     private final ObjectMapper objectMapper;
 
@@ -65,10 +69,30 @@ public class PaymentService {
             throw new CustomException(ErrorCode.ACCESS_DENIED);
         }
 
-        int finalAmount = application.getAmount();
+        int originalAmount =
+                switch (request.getMatchingType()) {
+                    case ONE_TO_ONE -> {
+                        OneToOne oneToOne = oneToOneRepository.findByOrderId(request.getOrderId())
+                                .orElseThrow(() -> new CustomException(ErrorCode.ORDER_NOT_FOUND));
+                        yield oneToOne.getEvent().getAmount();
+                    }
+                    case ROTATION -> {
+                        Rotation rotation = rotationRepository.findByOrderId(request.getOrderId())
+                                .orElseThrow(() -> new CustomException(ErrorCode.ORDER_NOT_FOUND));
+                        yield rotation.getEvent().getAmount();
+                    }
+                    case TRAVEL -> {
+                        Travel travel = travelRepository.findByOrderId(request.getOrderId())
+                                .orElseThrow(() -> new CustomException(ErrorCode.ORDER_NOT_FOUND));
+                        yield travel.getEvent().getAmount();
+                    }
+                };
+
+        int finalAmount = originalAmount;
+        MemberCoupon memberCoupon = null;
 
         if (request.getMemberCouponId() != null) {
-            MemberCoupon memberCoupon = memberCouponRepository.findById(request.getMemberCouponId())
+            memberCoupon = memberCouponRepository.findById(request.getMemberCouponId())
                     .orElseThrow(() -> new CustomException(ErrorCode.COUPON_NOT_FOUND));
 
             if (!memberCoupon.getMember().getId().equals(member.getId())) {
@@ -81,10 +105,19 @@ public class PaymentService {
 
             int discount = memberCoupon.getCoupon().calculateDiscountAmount(finalAmount);
             finalAmount -= discount;
-            memberCoupon.use(request.getOrderId());
         }
 
-        application.setAmount(finalAmount);
+        Payment payment = Payment.builder()
+                .orderId(request.getOrderId())
+                .matchingType(request.getMatchingType())
+                .originalAmount(originalAmount)
+                .finalAmount(finalAmount)
+                .memberCoupon(memberCoupon)
+                .status(PaymentStatus.PENDING)
+                .build();
+
+        paymentRepository.save(payment);
+        application.setStatus(ApplicationStatus.PAYMENT_PENDING);
 
         return new PaymentPrepareResponse(finalAmount);
     }
@@ -120,18 +153,21 @@ public class PaymentService {
             JpaRepository<T, Long> repository,
             PaymentConfirmRequest request) {
 
+        Payment payment = paymentRepository.findByOrderId(request.getOrderId())
+                .orElseThrow(() -> new CustomException(ErrorCode.ORDER_NOT_FOUND));
+
         if (application.getStatus() == ApplicationStatus.PAYMENT_COMPLETED) {
-            if (!application.getPaymentKey().equals(request.getPaymentKey())) {
+            if (!payment.getPaymentKey().equals(request.getPaymentKey())) {
                 throw new CustomException(ErrorCode.PAYMENT_KEY_MISMATCH);
             }
-            return PaymentConfirmResponse.from(application);
+            return PaymentConfirmResponse.from(payment, application);
         }
 
         if (application.getStatus() != ApplicationStatus.PAYMENT_PENDING) {
             throw new CustomException(ErrorCode.INVALID_PAYMENT_STATUS);
         }
 
-        if (!application.getAmount().equals(request.getAmount())) {
+        if (!payment.getFinalAmount().equals(request.getAmount())) {
             throw new CustomException(ErrorCode.PAYMENT_AMOUNT_MISMATCH);
         }
 
@@ -145,15 +181,15 @@ public class PaymentService {
                 );
 
                 try {
-                    application.setPaymentKey(request.getPaymentKey());
+                    payment.setPaymentKey(request.getPaymentKey());
+                    payment.setStatus(PaymentStatus.COMPLETED);
+                    payment.setPaidAt(LocalDateTime.now());
+
+                    if (payment.getMemberCoupon() != null) {
+                        payment.getMemberCoupon().use(request.getOrderId());
+                    }
+
                     application.setStatus(ApplicationStatus.PAYMENT_COMPLETED);
-                    application.setPaidAt(LocalDateTime.now());
-
-                    repository.save(application);
-                    repository.flush();
-
-                    log.info("결제 승인 완료 - orderId: {}, paymentKey: {}, paidAt: {}",
-                            request.getOrderId(), request.getPaymentKey(), application.getPaidAt());
 
                     return confirmResponse;
 
@@ -238,10 +274,18 @@ public class PaymentService {
         Member member = memberRepository.findById(accountContext.getMemberId())
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
-        Matching application = oneToOneRepository.findByPaymentKey(request.getPaymentKey())
-                .<Matching>map(a -> a)
-                .orElseGet(() -> rotationRepository.findByPaymentKey(request.getPaymentKey())
-                        .orElseThrow(() -> new CustomException(ErrorCode.APPLICATION_NOT_FOUND)));
+        Payment payment = paymentRepository.findByPaymentKey(request.getPaymentKey())
+                .orElseThrow(() -> new CustomException(ErrorCode.ORDER_NOT_FOUND));
+
+        Matching application =
+                switch (payment.getMatchingType()) {
+                    case ONE_TO_ONE -> oneToOneRepository.findByOrderId(payment.getOrderId())
+                            .orElseThrow(() -> new CustomException(ErrorCode.ORDER_NOT_FOUND));
+                    case ROTATION -> rotationRepository.findByOrderId(payment.getOrderId())
+                            .orElseThrow(() -> new CustomException(ErrorCode.ORDER_NOT_FOUND));
+                    case TRAVEL -> travelRepository.findByOrderId(payment.getOrderId())
+                            .orElseThrow(() -> new CustomException(ErrorCode.ORDER_NOT_FOUND));
+                };
 
         if(!member.getRole().equals(Role.ADMIN) && !application.getMember().getId().equals(member.getId())){
             throw new CustomException(ErrorCode.ACCESS_DENIED);

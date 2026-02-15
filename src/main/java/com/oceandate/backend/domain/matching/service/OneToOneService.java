@@ -13,6 +13,8 @@ import com.oceandate.backend.domain.matching.repository.OneToOneMatchingReposito
 import com.oceandate.backend.domain.matching.repository.OneToOneRepository;
 import com.oceandate.backend.domain.payment.dto.PaymentCancelRequest;
 import com.oceandate.backend.domain.payment.dto.RefundResponse;
+import com.oceandate.backend.domain.payment.entity.Payment;
+import com.oceandate.backend.domain.payment.repository.PaymentRepository;
 import com.oceandate.backend.domain.payment.service.PaymentService;
 import com.oceandate.backend.domain.payment.util.RefundPolicy;
 import com.oceandate.backend.domain.user.entity.Member;
@@ -29,7 +31,6 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -43,6 +44,7 @@ public class OneToOneService {
     private final OneToOneMatchingRepository matchingRepository;
     private final MemberRepository memberRepository;
     private final OneToOneMatchingRepository oneToOneMatchingRepository;
+    private final PaymentRepository paymentRepository;
     private final PaymentService paymentService;
     private final SmsService smsService;
 
@@ -78,7 +80,6 @@ public class OneToOneService {
                 .idealType(request.getIdealType())
                 .hobby(request.getHobby())
                 .orderId(orderId)
-                .amount(event.getAmount())
                 .build();
 
         try {
@@ -193,9 +194,9 @@ public class OneToOneService {
         application.cancel(cancelReason, refund.getAmount());
 
         // MATCHED 상태면 상대방도 취소 + 전액 환불
-        if (application.getStatus() == ApplicationStatus.MATCHED) {
-            cancelCounterpart(application, accountContext);
-        }
+//        if (application.getStatus() == ApplicationStatus.MATCHED) {
+//            cancelCounterpart(application, accountContext);
+//        }
 
         return RefundResponse.of(applicationId, refund.getAmount(), refund.getRate(), refund.getReason());
     }
@@ -205,48 +206,54 @@ public class OneToOneService {
             return new RefundPolicy.RefundAmount(0, 0, "결제 전 취소");
         }
 
+        Payment payment = paymentRepository.findByOrderId(application.getOrderId())
+                .orElseThrow(() -> new CustomException(ErrorCode.ORDER_NOT_FOUND));
+
         LocalDateTime eventDate = application.getConfirmedDate();
-        LocalDateTime paymentDate = application.getPaidAt();
+        LocalDateTime paymentDate = payment.getPaidAt();
 
         return RefundPolicy.calculate(
                 eventDate,
                 paymentDate,
                 LocalDateTime.now(),
-                application.getAmount()
+                payment.getFinalAmount()
         );
     }
 
-    private void cancelCounterpart(OneToOne application, AccountContext accountContext) {
-        OneToOneMatching matching = oneToOneMatchingRepository
-                .findByMaleApplicationOrFemaleApplication(application, application)
-                .orElseThrow(() -> new CustomException(ErrorCode.MATCHING_NOT_FOUND));
-
-        OneToOne counterpart = matching.getMaleApplication().equals(application)
-                ? matching.getFemaleApplication()
-                : matching.getMaleApplication();
-
-        if (!counterpart.getStatus().isCancellable()) {
-            return;
-        }
-
-        RefundPolicy.RefundAmount counterpartRefund = RefundPolicy.fullRefundByCounterpart(
-                counterpart.getAmount()
-        );
-
-        if (counterpartRefund.getAmount() > 0) {
-            processPaymentCancel(accountContext, counterpart, counterpartRefund);
-        }
-
-        counterpart.cancel("상대방 취소로 인한 자동 취소", counterpartRefund.getAmount());
-    }
+//    private void cancelCounterpart(OneToOne application, AccountContext accountContext) {
+//        OneToOneMatching matching = oneToOneMatchingRepository
+//                .findByMaleApplicationOrFemaleApplication(application, application)
+//                .orElseThrow(() -> new CustomException(ErrorCode.MATCHING_NOT_FOUND));
+//
+//        OneToOne counterpart = matching.getMaleApplication().equals(application)
+//                ? matching.getFemaleApplication()
+//                : matching.getMaleApplication();
+//
+//        if (!counterpart.getStatus().isCancellable()) {
+//            return;
+//        }
+//
+//        RefundPolicy.RefundAmount counterpartRefund = RefundPolicy.fullRefundByCounterpart(
+//                counterpart.getAmount()
+//        );
+//
+//        if (counterpartRefund.getAmount() > 0) {
+//            processPaymentCancel(accountContext, counterpart, counterpartRefund);
+//        }
+//
+//        counterpart.cancel("상대방 취소로 인한 자동 취소", counterpartRefund.getAmount());
+//    }
 
     private void processPaymentCancel(
             AccountContext accountContext,
             OneToOne target,
             RefundPolicy.RefundAmount refund
     ) {
+        Payment payment = paymentRepository.findByOrderId(target.getOrderId())
+                .orElseThrow(() -> new CustomException(ErrorCode.ORDER_NOT_FOUND));
+
         PaymentCancelRequest cancelRequest = PaymentCancelRequest.builder()
-                .paymentKey(target.getPaymentKey())
+                .paymentKey(payment.getPaymentKey())
                 .cancelReason(refund.getReason())
                 .cancelAmount(refund.getAmount())
                 .build();
