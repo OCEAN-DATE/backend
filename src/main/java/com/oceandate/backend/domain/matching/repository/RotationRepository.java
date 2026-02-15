@@ -23,6 +23,8 @@ public interface RotationRepository extends JpaRepository<Rotation, Long> {
     @Query("SELECT o FROM Rotation o WHERE o.orderId = :orderId")
     Optional<Rotation> findByOrderIdWithLock(String orderId);
 
+    Optional<Rotation> findByOrderId(String orderId);
+
     List<Rotation> findByMemberId(Long memberId);
 
     @Query("SELECT o FROM Rotation o WHERE o.event.id = :eventId " +

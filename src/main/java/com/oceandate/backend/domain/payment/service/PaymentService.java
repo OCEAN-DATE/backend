@@ -5,14 +5,16 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.oceandate.backend.domain.matching.entity.Matching;
 import com.oceandate.backend.domain.matching.entity.OneToOne;
 import com.oceandate.backend.domain.matching.entity.Rotation;
+import com.oceandate.backend.domain.matching.entity.Travel;
 import com.oceandate.backend.domain.matching.enums.ApplicationStatus;
 import com.oceandate.backend.domain.matching.enums.MatchingType;
 import com.oceandate.backend.domain.matching.repository.OneToOneRepository;
 import com.oceandate.backend.domain.matching.repository.RotationRepository;
+import com.oceandate.backend.domain.matching.repository.TravelRepository;
 import com.oceandate.backend.domain.payment.client.TossPaymentClient;
-import com.oceandate.backend.domain.payment.dto.PaymentCancelRequest;
-import com.oceandate.backend.domain.payment.dto.PaymentConfirmRequest;
-import com.oceandate.backend.domain.payment.dto.PaymentConfirmResponse;
+import com.oceandate.backend.domain.payment.dto.*;
+import com.oceandate.backend.domain.payment.entity.MemberCoupon;
+import com.oceandate.backend.domain.payment.repository.MemberCouponRepository;
 import com.oceandate.backend.domain.payment.util.TossErrorMapper;
 import com.oceandate.backend.domain.user.entity.Member;
 import com.oceandate.backend.domain.user.entity.Role;
@@ -39,8 +41,53 @@ public class PaymentService {
     private final MemberRepository memberRepository;
     private final OneToOneRepository oneToOneRepository;
     private final RotationRepository rotationRepository;
+    private final TravelRepository travelRepository;
+    private final MemberCouponRepository memberCouponRepository;
     private final TossPaymentClient tossPaymentClient;
     private final ObjectMapper objectMapper;
+
+    @Transactional
+    public PaymentPrepareResponse preparePayment(AccountContext accountContext, PaymentPrepareRequest request) {
+        Member member = memberRepository.findById(accountContext.getMemberId())
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
+
+        Matching application =
+        switch (request.getMatchingType()) {
+            case ONE_TO_ONE -> oneToOneRepository.findByOrderId(request.getOrderId())
+                    .orElseThrow(() -> new CustomException(ErrorCode.ORDER_NOT_FOUND));
+            case ROTATION -> rotationRepository.findByOrderId(request.getOrderId())
+                    .orElseThrow(() -> new CustomException(ErrorCode.ORDER_NOT_FOUND));
+            case TRAVEL -> travelRepository.findByOrderId(request.getOrderId())
+                    .orElseThrow(() -> new CustomException(ErrorCode.ORDER_NOT_FOUND));
+        };
+
+        if (!application.getMember().getId().equals(member.getId())) {
+            throw new CustomException(ErrorCode.ACCESS_DENIED);
+        }
+
+        int finalAmount = application.getAmount();
+
+        if (request.getMemberCouponId() != null) {
+            MemberCoupon memberCoupon = memberCouponRepository.findById(request.getMemberCouponId())
+                    .orElseThrow(() -> new CustomException(ErrorCode.COUPON_NOT_FOUND));
+
+            if (!memberCoupon.getMember().getId().equals(member.getId())) {
+                throw new CustomException(ErrorCode.ACCESS_DENIED);
+            }
+
+            if (!memberCoupon.isUsable()) {
+                throw new CustomException(ErrorCode.COUPON_NOT_USABLE);
+            }
+
+            int discount = memberCoupon.getCoupon().calculateDiscountAmount(finalAmount);
+            finalAmount -= discount;
+            memberCoupon.use(request.getOrderId());
+        }
+
+        application.setAmount(finalAmount);
+
+        return new PaymentPrepareResponse(finalAmount);
+    }
 
     public PaymentConfirmResponse confirmPayment(PaymentConfirmRequest request) {
 
@@ -56,7 +103,14 @@ public class PaymentService {
 
             return processPayment(application, rotationRepository, request);
 
-        } else {
+        } else if (request.getMatchingType() == MatchingType.TRAVEL){
+            Travel application = travelRepository.findByOrderId(request.getOrderId())
+                    .orElseThrow(() -> new CustomException(ErrorCode.APPLICATION_NOT_FOUND));
+
+            return processPayment(application, travelRepository, request);
+        }
+
+        else {
             throw new CustomException(ErrorCode.INVALID_MATCHING_TYPE);
         }
     }

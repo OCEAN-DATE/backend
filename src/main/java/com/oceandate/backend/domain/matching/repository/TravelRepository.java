@@ -52,4 +52,6 @@ public interface TravelRepository extends JpaRepository<Travel, Long> {
             @Param("status") ApplicationStatus status,
             @Param("before") LocalDateTime before
     );
+
+    Optional<Travel> findByOrderId(String orderId);
 }
