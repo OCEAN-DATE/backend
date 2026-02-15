@@ -1,11 +1,13 @@
 package com.oceandate.backend.domain.matching.service;
 
 import com.oceandate.backend.domain.matching.dto.AccommodationDto;
+import com.oceandate.backend.domain.matching.dto.TravelEventRequest;
 import com.oceandate.backend.domain.matching.dto.TravelEventResponse;
 import com.oceandate.backend.domain.matching.dto.TravelScheduleDto;
 import com.oceandate.backend.domain.matching.entity.Accommodation;
 import com.oceandate.backend.domain.matching.entity.TravelEvent;
 import com.oceandate.backend.domain.matching.entity.TravelSchedule;
+import com.oceandate.backend.domain.matching.enums.EventStatus;
 import com.oceandate.backend.domain.matching.enums.MatchingType;
 import com.oceandate.backend.domain.matching.repository.AccommodationRepository;
 import com.oceandate.backend.domain.matching.repository.TravelEventRepository;
@@ -54,6 +56,62 @@ public class TravelEventService {
         return events.stream()
                 .map(TravelEventResponse::from)
                 .toList();
+    }
+
+    // ============= 이벤트 관리 (생성, 수정, 삭제, 상태 변경) =============
+
+    /**
+     * 여행 이벤트 생성
+     */
+    @Transactional
+    public TravelEventResponse createEvent(TravelEventRequest request) {
+        TravelEvent event = request.toEntity();
+        TravelEvent savedEvent = travelEventRepository.save(event);
+        return TravelEventResponse.from(savedEvent);
+    }
+
+    /**
+     * 여행 이벤트 수정
+     */
+    @Transactional
+    public TravelEventResponse updateEvent(Long eventId, TravelEventRequest request) {
+        TravelEvent event = travelEventRepository.findById(eventId)
+                .orElseThrow(() -> new CustomException(ErrorCode.EVENT_NOT_FOUND));
+
+        event.setEventName(request.getEventName());
+        event.setLocation(request.getLocation());
+        event.setEventStartDate(request.getEventStartDate());
+        event.setEventEndDate(request.getEventEndDate());
+        event.setMaleCapacity(request.getMaleCapacity());
+        event.setFemaleCapacity(request.getFemaleCapacity());
+        event.setAgeRange(request.getAgeRange());
+        event.setAmount(request.getAmount());
+        event.setDescription(request.getDescription());
+
+        return TravelEventResponse.from(event);
+    }
+
+    /**
+     * 여행 이벤트 삭제 (상태를 DELETED로 변경)
+     */
+    @Transactional
+    public void deleteEvent(Long eventId) {
+        TravelEvent event = travelEventRepository.findById(eventId)
+                .orElseThrow(() -> new CustomException(ErrorCode.EVENT_NOT_FOUND));
+
+        event.setStatus(EventStatus.DELETED);
+    }
+
+    /**
+     * 여행 이벤트 상태 변경
+     */
+    @Transactional
+    public TravelEventResponse updateEventStatus(Long eventId, EventStatus status) {
+        TravelEvent event = travelEventRepository.findById(eventId)
+                .orElseThrow(() -> new CustomException(ErrorCode.EVENT_NOT_FOUND));
+
+        event.setStatus(status);
+        return TravelEventResponse.from(event);
     }
 
     // ============= 프로그램 관리 (일정) =============
