@@ -364,7 +364,6 @@ public class AdminController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> approveCancelRequest(
             @PathVariable Long cancelRequestId,
-            @RequestBody ProcessCancelRequest request,
             @AuthenticationPrincipal AccountContext accountContext
             ){
         oneToOneService.approveCancelRequest(cancelRequestId, accountContext);

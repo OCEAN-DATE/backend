@@ -17,6 +17,7 @@ import com.oceandate.backend.domain.matching.repository.OneToOneMatchingReposito
 import com.oceandate.backend.domain.matching.repository.OneToOneRepository;
 import com.oceandate.backend.domain.payment.dto.PaymentCancelRequest;
 import com.oceandate.backend.domain.payment.entity.Payment;
+import com.oceandate.backend.domain.payment.enums.PaymentStatus;
 import com.oceandate.backend.domain.payment.repository.PaymentRepository;
 import com.oceandate.backend.domain.payment.service.PaymentService;
 import com.oceandate.backend.domain.payment.util.RefundPolicy;
@@ -29,6 +30,7 @@ import com.oceandate.backend.global.sms.SmsService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cglib.core.Local;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
@@ -120,7 +122,7 @@ public class OneToOneService {
 
         UserInfo applicantInfo = UserInfo.from(application);
 
-        if (application.getStatus() == ApplicationStatus.MATCHED) {
+        if (!application.getStatus().isBeforeMatched()) {
             UserInfo partnerInfo = getMatchedPartner(applicationId);
             return OneToOneResponse.fromMatched(application, applicantInfo, partnerInfo);
         }
@@ -233,7 +235,7 @@ public class OneToOneService {
                 .orElseThrow(() -> new CustomException(ErrorCode.ORDER_NOT_FOUND));
 
         PaymentCancelRequest cancelRequest = PaymentCancelRequest.builder()
-                .paymentKey(payment.getPaymentKey())
+                .orderId(payment.getOrderId())
                 .cancelReason(refund.getReason())
                 .cancelAmount(refund.getAmount())
                 .build();
@@ -269,6 +271,9 @@ public class OneToOneService {
 
         OneToOne application = cancelRequest.getApplication();
 
+        Payment payment = paymentRepository.findByOrderId(application.getOrderId())
+                .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND_PAYMENT));
+
         RefundPolicy.RefundAmount refund = calculateRefund(application);
 
         if (refund.getAmount() > 0) {
@@ -276,6 +281,9 @@ public class OneToOneService {
         }
 
         application.cancel(cancelRequest.getCancelReason(), refund.getAmount());
+        payment.setRefundedAt(LocalDateTime.now());
+        payment.setRefundAmount(refund.getAmount());
+        payment.setStatus(PaymentStatus.CANCELLED);
 
         cancelRequest.approve((long)refund.getAmount());
     }

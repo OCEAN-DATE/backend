@@ -21,6 +21,7 @@ public class RotationResponse {
 
     private ApplicationStatus status;
     private String orderId;
+    private String paymentKey;
     private Integer amount;
     private LocalDateTime createdAt;
     private LocalDateTime approvedAt;

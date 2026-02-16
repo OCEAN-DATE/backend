@@ -34,6 +34,7 @@ import org.springframework.stereotype.Service;
 import java.net.http.HttpResponse;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -69,24 +70,11 @@ public class PaymentService {
             throw new CustomException(ErrorCode.ACCESS_DENIED);
         }
 
-        int originalAmount =
-                switch (request.getMatchingType()) {
-                    case ONE_TO_ONE -> {
-                        OneToOne oneToOne = oneToOneRepository.findByOrderId(request.getOrderId())
-                                .orElseThrow(() -> new CustomException(ErrorCode.ORDER_NOT_FOUND));
-                        yield oneToOne.getEvent().getAmount();
-                    }
-                    case ROTATION -> {
-                        Rotation rotation = rotationRepository.findByOrderId(request.getOrderId())
-                                .orElseThrow(() -> new CustomException(ErrorCode.ORDER_NOT_FOUND));
-                        yield rotation.getEvent().getAmount();
-                    }
-                    case TRAVEL -> {
-                        Travel travel = travelRepository.findByOrderId(request.getOrderId())
-                                .orElseThrow(() -> new CustomException(ErrorCode.ORDER_NOT_FOUND));
-                        yield travel.getEvent().getAmount();
-                    }
-                };
+        int originalAmount = switch (request.getMatchingType()) {
+            case ONE_TO_ONE -> ((OneToOne) application).getEvent().getAmount();
+            case ROTATION -> ((Rotation) application).getEvent().getAmount();
+            case TRAVEL -> ((Travel) application).getEvent().getAmount();
+        };
 
         int finalAmount = originalAmount;
         MemberCoupon memberCoupon = null;
@@ -107,6 +95,23 @@ public class PaymentService {
             finalAmount -= discount;
         }
 
+        Optional<Payment> paymentOpt = paymentRepository.findByOrderId(application.getOrderId());
+
+        if(paymentOpt.isPresent()){
+            Payment payment = paymentOpt.get();
+
+            if(payment.getStatus() == PaymentStatus.COMPLETED){
+                throw new CustomException(ErrorCode.ALREADY_PROCESSED_PAYMENT);
+            }
+
+            payment.setOriginalAmount(originalAmount);
+            payment.setFinalAmount(finalAmount);
+            payment.setMemberCoupon(memberCoupon);
+            payment.setStatus(PaymentStatus.PENDING);
+            application.setStatus(ApplicationStatus.PAYMENT_PENDING);
+
+            return new PaymentPrepareResponse(finalAmount);
+        }
         Payment payment = Payment.builder()
                 .orderId(request.getOrderId())
                 .matchingType(request.getMatchingType())
@@ -198,7 +203,7 @@ public class PaymentService {
                             request.getOrderId(), request.getPaymentKey(), dbException);
 
                     try {
-                        rollbackTossPayment(request.getPaymentKey(), "DB 저장 실패로 인한 자동 취소");
+                        rollbackTossPayment(request.getOrderId(), "DB 저장 실패로 인한 자동 취소");
                         log.info("토스 결제 자동 취소 완료 - paymentKey: {}", request.getPaymentKey());
                     } catch (Exception cancelException) {
                         log.error("토스 결제 취소 실패! 수동 처리 필요 - paymentKey: {}, orderId: {}",
@@ -221,9 +226,9 @@ public class PaymentService {
         }
     }
 
-    private void rollbackTossPayment(String paymentKey, String cancelReason) throws Exception {
+    private void rollbackTossPayment(String orderId, String cancelReason) throws Exception {
         PaymentCancelRequest cancelRequest = PaymentCancelRequest.builder()
-                .paymentKey(paymentKey)
+                .orderId(orderId)
                 .cancelReason(cancelReason)
                 .build();
 
@@ -274,7 +279,7 @@ public class PaymentService {
         Member member = memberRepository.findById(accountContext.getMemberId())
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
-        Payment payment = paymentRepository.findByPaymentKey(request.getPaymentKey())
+        Payment payment = paymentRepository.findByOrderId(request.getOrderId())
                 .orElseThrow(() -> new CustomException(ErrorCode.ORDER_NOT_FOUND));
 
         Matching application =

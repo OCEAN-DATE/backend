@@ -4,6 +4,10 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.oceandate.backend.domain.payment.dto.PaymentCancelRequest;
 import com.oceandate.backend.domain.payment.dto.PaymentConfirmRequest;
+import com.oceandate.backend.domain.payment.entity.Payment;
+import com.oceandate.backend.domain.payment.repository.PaymentRepository;
+import com.oceandate.backend.global.exception.CustomException;
+import com.oceandate.backend.global.exception.constant.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -21,6 +25,8 @@ import java.util.UUID;
 @Component
 @RequiredArgsConstructor
 public class TossPaymentClient {
+
+    private final PaymentRepository paymentRepository;
 
     @Value("${toss.payments.secret-key}")
     private String secretKey;
@@ -70,8 +76,11 @@ public class TossPaymentClient {
             throws IOException, InterruptedException {
         String requestBody = objectMapper.writeValueAsString(paymentCancelRequest);
 
+        Payment payment = paymentRepository.findByOrderId(paymentCancelRequest.getOrderId())
+                .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND_PAYMENT));
+
         HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create("https://api.tosspayments.com/v1/payments/" + paymentCancelRequest.getPaymentKey() + "/cancel"))
+                .uri(URI.create("https://api.tosspayments.com/v1/payments/" + payment.getPaymentKey() + "/cancel"))
                 .header("Authorization", getAuthorizations())
                 .header("Content-Type", "application/json")
                 .header("Idempotency-Key", UUID.randomUUID().toString())

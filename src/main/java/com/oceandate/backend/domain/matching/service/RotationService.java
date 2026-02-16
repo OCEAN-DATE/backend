@@ -10,6 +10,7 @@ import com.oceandate.backend.domain.matching.repository.RotationRepository;
 import com.oceandate.backend.domain.payment.dto.PaymentCancelRequest;
 import com.oceandate.backend.domain.payment.dto.RefundResponse;
 import com.oceandate.backend.domain.payment.entity.Payment;
+import com.oceandate.backend.domain.payment.enums.PaymentStatus;
 import com.oceandate.backend.domain.payment.repository.PaymentRepository;
 import com.oceandate.backend.domain.payment.service.PaymentService;
 import com.oceandate.backend.domain.payment.util.RefundPolicy;
@@ -208,13 +209,24 @@ public void updateStatus(Long id, ApplicationStatus status) {
 
             if (refundAmount > 0) {
                 PaymentCancelRequest cancelRequest = PaymentCancelRequest.builder()
-                        .paymentKey(payment.getPaymentKey())
+                        .orderId(payment.getOrderId())
                         .cancelReason(refundReason)
                         .cancelAmount(refundAmount)
                         .build();
 
                 paymentService.cancelPayment(accountContext, cancelRequest);
             }
+
+            payment.setRefundAmount(refundAmount);
+            payment.setRefundedAt(LocalDateTime.now());
+            payment.setStatus(PaymentStatus.CANCELLED);
+        }
+
+        if (application.getStatus() == ApplicationStatus.APPROVED ||
+                application.getStatus() == ApplicationStatus.PAYMENT_PENDING ||
+                application.getStatus() == ApplicationStatus.PAYMENT_COMPLETED) {
+            RotationEvent event = application.getEvent();
+            event.decrementApprovedCount(application.getMember().getSex());
         }
 
         application.cancel(cancelReason != null ? cancelReason : "사용자 요청", refundAmount);

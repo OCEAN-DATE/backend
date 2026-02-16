@@ -11,20 +11,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @JsonInclude
 public class PaymentCancelRequest {
-    String paymentKey;
+    String orderId;
     String cancelReason;
     Integer cancelAmount;
-    RefundReceiveAccount account;
-    Integer taxFreeAmount;
-    String currency;
-
-    @Getter
-    @NoArgsConstructor
-    @AllArgsConstructor
-    @Builder
-    public static class RefundReceiveAccount{
-        private String bank;
-        private String accountNumber;
-        private String holderName;
-    }
 }

@@ -3,9 +3,7 @@ package com.oceandate.backend.domain.payment.entity;
 import com.oceandate.backend.domain.matching.enums.MatchingType;
 import com.oceandate.backend.domain.payment.enums.PaymentStatus;
 import jakarta.persistence.*;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 
 import java.time.LocalDateTime;
 
@@ -13,6 +11,8 @@ import java.time.LocalDateTime;
 @Getter
 @Setter
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class Payment {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
