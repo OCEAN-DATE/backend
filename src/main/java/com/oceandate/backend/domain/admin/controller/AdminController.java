@@ -1,5 +1,7 @@
 package com.oceandate.backend.domain.admin.controller;
 
+import com.oceandate.backend.domain.admin.dto.request.ProcessCancelRequest;
+import com.oceandate.backend.domain.admin.dto.response.CancelRequestList;
 import com.oceandate.backend.domain.admin.dto.response.UserListResponse;
 import com.oceandate.backend.domain.admin.service.AdminService;
 import com.oceandate.backend.domain.matching.dto.AccommodationDto;
@@ -8,18 +10,23 @@ import com.oceandate.backend.domain.matching.dto.TravelEventRequest;
 import com.oceandate.backend.domain.matching.dto.TravelEventResponse;
 import com.oceandate.backend.domain.matching.dto.TravelScheduleDto;
 import com.oceandate.backend.domain.matching.entity.Accommodation;
+import com.oceandate.backend.domain.matching.entity.CancelRequest;
 import com.oceandate.backend.domain.matching.entity.Travel;
 import com.oceandate.backend.domain.matching.entity.TravelSchedule;
 import com.oceandate.backend.domain.matching.enums.ApplicationStatus;
 import com.oceandate.backend.domain.matching.enums.EventStatus;
+import com.oceandate.backend.domain.matching.repository.CancelRequestRepository;
+import com.oceandate.backend.domain.matching.service.OneToOneService;
 import com.oceandate.backend.domain.matching.service.RotationService;
 import com.oceandate.backend.domain.matching.service.TravelEventService;
 import com.oceandate.backend.domain.matching.service.TravelService;
+import com.oceandate.backend.global.jwt.AccountContext;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -34,6 +41,7 @@ public class AdminController {
     private final TravelService travelService;
     private final TravelEventService travelEventService;
     private final RotationService rotationService;
+    private final OneToOneService oneToOneService;
     private final com.oceandate.backend.domain.payment.service.CouponService couponService;
 
     @Operation(summary = "[관리자] 유저 리스트 조회", description = "전체 유저 목록을 조회합니다. includeBlacklisted 파라미터로 블랙리스트 포함 여부를 선택할 수 있습니다.")
@@ -340,5 +348,37 @@ public class AdminController {
         List<com.oceandate.backend.domain.payment.dto.MemberCouponResponse> responses =
                 couponService.issueCouponToUsers(request);
         return ResponseEntity.ok(responses);
+    }
+
+    @Operation(summary = "[관리자] 일대일 소개팅 취소 신청 목록 조회", description = "일대일 소개팅 매칭 후 취소 시 관리자 승인 필요")
+    @GetMapping("/onetoone/cancel-requests")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<CancelRequestList>> getCancelRequests(){
+        List<CancelRequestList> responses = oneToOneService.getPendingRequests();
+
+        return ResponseEntity.ok(responses);
+    }
+
+    @Operation(summary = "[관리자] 일대일 소개팅 취소 승인")
+    @PatchMapping("/onetoone/cancel-requests/{cancelRequestId}/approve")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Void> approveCancelRequest(
+            @PathVariable Long cancelRequestId,
+            @RequestBody ProcessCancelRequest request,
+            @AuthenticationPrincipal AccountContext accountContext
+            ){
+        oneToOneService.approveCancelRequest(cancelRequestId, accountContext);
+        return ResponseEntity.ok().build();
+    }
+
+    @Operation(summary = "[관리자] 일대일 소개팅 취소 거절")
+    @PatchMapping("/onetoone/cancel-requests/{cancelRequestId}/reject")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Void> rejectCancelRequest(
+            @PathVariable Long cancelRequestId,
+            @RequestBody ProcessCancelRequest request
+    ){
+        oneToOneService.rejectCancelRequest(cancelRequestId, request.getAdminComment());
+        return ResponseEntity.ok().build();
     }
 }

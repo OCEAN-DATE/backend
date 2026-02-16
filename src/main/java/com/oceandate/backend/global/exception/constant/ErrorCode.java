@@ -60,6 +60,12 @@ public enum ErrorCode {
 
     //쿠폰
     COUPON_NOT_USABLE("COUPON_400", "사용할 수 없는 쿠폰입니다."),
+
+    //취소
+    CANCEL_REQUEST_ALREADY_EXISTS("CANCEL_400", "이미 취소 요청된 신청입니다."),
+    CANCEL_REQUEST_NOT_FOUND("CANCEL_404", "취소 신청을 찾을 수 없습니다."),
+    CANCEL_REQUEST_ALREADY_PROCESSED("CANCEL_400", "이미 취소된 신청입니다."),
+
     //토스
     ALREADY_PROCESSED_PAYMENT("TOSS_001", "이미 처리된 결제입니다"),
     PROVIDER_ERROR("TOSS_002", "일시적인 오류가 발생했습니다. 잠시 후 다시 시도해주세요"),
