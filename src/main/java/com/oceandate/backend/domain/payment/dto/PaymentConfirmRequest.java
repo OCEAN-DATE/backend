@@ -12,7 +12,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class PaymentConfirmRequest {
-    private String paymentKey;
+    private String paymentId;
+    private String paymentToken;
     private String orderId;
     private Integer amount;
     private MatchingType matchingType;

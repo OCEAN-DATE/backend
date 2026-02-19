@@ -11,14 +11,14 @@ import com.oceandate.backend.domain.matching.enums.MatchingType;
 import com.oceandate.backend.domain.matching.repository.OneToOneRepository;
 import com.oceandate.backend.domain.matching.repository.RotationRepository;
 import com.oceandate.backend.domain.matching.repository.TravelRepository;
-import com.oceandate.backend.domain.payment.client.TossPaymentClient;
+import com.oceandate.backend.domain.payment.client.PortOnePaymentClient;
 import com.oceandate.backend.domain.payment.dto.*;
 import com.oceandate.backend.domain.payment.entity.MemberCoupon;
 import com.oceandate.backend.domain.payment.entity.Payment;
 import com.oceandate.backend.domain.payment.enums.PaymentStatus;
 import com.oceandate.backend.domain.payment.repository.MemberCouponRepository;
 import com.oceandate.backend.domain.payment.repository.PaymentRepository;
-import com.oceandate.backend.domain.payment.util.TossErrorMapper;
+import com.oceandate.backend.domain.payment.util.PortOneErrorMapper;
 import com.oceandate.backend.domain.user.entity.Member;
 import com.oceandate.backend.domain.user.entity.Role;
 import com.oceandate.backend.domain.user.repository.MemberRepository;
@@ -28,12 +28,10 @@ import com.oceandate.backend.global.jwt.AccountContext;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Service;
 
 import java.net.http.HttpResponse;
 import java.time.LocalDateTime;
-import java.time.OffsetDateTime;
 import java.util.Optional;
 
 @Service
@@ -48,7 +46,7 @@ public class PaymentService {
     private final TravelRepository travelRepository;
     private final MemberCouponRepository memberCouponRepository;
     private final PaymentRepository paymentRepository;
-    private final TossPaymentClient tossPaymentClient;
+    private final PortOnePaymentClient portOnePaymentClient;
     private final ObjectMapper objectMapper;
 
     @Transactional
@@ -129,40 +127,28 @@ public class PaymentService {
 
     public PaymentConfirmResponse confirmPayment(PaymentConfirmRequest request) {
 
-        if (request.getMatchingType() == MatchingType.ONE_TO_ONE) {
-            OneToOne application = oneToOneRepository.findByOrderIdWithLock(request.getOrderId())
+        Matching application = switch (request.getMatchingType()) {
+            case ONE_TO_ONE -> oneToOneRepository.findByOrderIdWithLock(request.getOrderId())
                     .orElseThrow(() -> new CustomException(ErrorCode.ORDER_NOT_FOUND));
-
-            return processPayment(application, oneToOneRepository, request);
-
-        } else if (request.getMatchingType() == MatchingType.ROTATION) {
-            Rotation application = rotationRepository.findByOrderIdWithLock(request.getOrderId())
+            case ROTATION -> rotationRepository.findByOrderIdWithLock(request.getOrderId())
                     .orElseThrow(() -> new CustomException(ErrorCode.ORDER_NOT_FOUND));
-
-            return processPayment(application, rotationRepository, request);
-
-        } else if (request.getMatchingType() == MatchingType.TRAVEL){
-            Travel application = travelRepository.findByOrderId(request.getOrderId())
+            case TRAVEL -> travelRepository.findByOrderId(request.getOrderId())
                     .orElseThrow(() -> new CustomException(ErrorCode.APPLICATION_NOT_FOUND));
+            default -> throw new CustomException(ErrorCode.INVALID_MATCHING_TYPE);
+        };
 
-            return processPayment(application, travelRepository, request);
-        }
-
-        else {
-            throw new CustomException(ErrorCode.INVALID_MATCHING_TYPE);
-        }
+        return processPayment(application, request);
     }
 
     private <T extends Matching> PaymentConfirmResponse processPayment(
             T application,
-            JpaRepository<T, Long> repository,
             PaymentConfirmRequest request) {
 
         Payment payment = paymentRepository.findByOrderId(request.getOrderId())
                 .orElseThrow(() -> new CustomException(ErrorCode.ORDER_NOT_FOUND));
 
         if (application.getStatus() == ApplicationStatus.PAYMENT_COMPLETED) {
-            if (!payment.getPaymentKey().equals(request.getPaymentKey())) {
+            if (!payment.getPaymentKey().equals(request.getPaymentId())) {
                 throw new CustomException(ErrorCode.PAYMENT_KEY_MISMATCH);
             }
             return PaymentConfirmResponse.from(payment, application);
@@ -177,7 +163,7 @@ public class PaymentService {
         }
 
         try {
-            HttpResponse<String> response = tossPaymentClient.requestConfirm(request);
+            HttpResponse<String> response = portOnePaymentClient.requestConfirm(request);
 
             if (response.statusCode() == 200) {
                 PaymentConfirmResponse confirmResponse = objectMapper.readValue(
@@ -186,7 +172,7 @@ public class PaymentService {
                 );
 
                 try {
-                    payment.setPaymentKey(request.getPaymentKey());
+                    payment.setPaymentKey(request.getPaymentId());
                     payment.setStatus(PaymentStatus.COMPLETED);
                     payment.setPaidAt(LocalDateTime.now());
 
@@ -199,23 +185,23 @@ public class PaymentService {
                     return confirmResponse;
 
                 } catch (Exception dbException) {
-                    log.error("DB 저장 실패, 토스 결제 취소 시도 - orderId: {}, paymentKey: {}",
-                            request.getOrderId(), request.getPaymentKey(), dbException);
+                    log.error("DB 저장 실패, 결제 취소 시도 - orderId: {}, paymentKey: {}",
+                            request.getOrderId(), request.getPaymentId(), dbException);
 
                     try {
-                        rollbackTossPayment(request.getOrderId(), "DB 저장 실패로 인한 자동 취소");
-                        log.info("토스 결제 자동 취소 완료 - paymentKey: {}", request.getPaymentKey());
+                        rollbackPortOnePayment(request.getOrderId(), "DB 저장 실패로 인한 자동 취소");
+                        log.info("결제 자동 취소 완료 - paymentKey: {}", request.getPaymentId());
                     } catch (Exception cancelException) {
-                        log.error("토스 결제 취소 실패! 수동 처리 필요 - paymentKey: {}, orderId: {}",
-                                request.getPaymentKey(), request.getOrderId(), cancelException);
+                        log.error("결제 취소 실패! 수동 처리 필요 - paymentKey: {}, orderId: {}",
+                                request.getPaymentId(), request.getOrderId(), cancelException);
                     }
 
                     throw new CustomException(ErrorCode.PAYMENT_DB_SAVE_FAILED);
                 }
 
             } else {
-                String tossErrorCode = objectMapper.readTree(response.body()).get("code").asText();
-                throw new CustomException(TossErrorMapper.fromTossErrorCode(tossErrorCode));
+                String errorType = objectMapper.readTree(response.body()).get("type").asText();
+                throw new CustomException(PortOneErrorMapper.fromPortOneErrorType(errorType));
             }
         } catch (CustomException e) {
             throw e;
@@ -226,20 +212,20 @@ public class PaymentService {
         }
     }
 
-    private void rollbackTossPayment(String orderId, String cancelReason) throws Exception {
+    private void rollbackPortOnePayment(String orderId, String cancelReason) throws Exception {
         PaymentCancelRequest cancelRequest = PaymentCancelRequest.builder()
                 .orderId(orderId)
                 .cancelReason(cancelReason)
                 .build();
 
-        HttpResponse<String> cancelResponse = tossPaymentClient.cancelPayment(cancelRequest);
+        HttpResponse<String> cancelResponse = portOnePaymentClient.cancelPayment(cancelRequest);
 
         if (cancelResponse.statusCode() != 200) {
             JsonNode errorBody = objectMapper.readTree(cancelResponse.body());
-            String errorCode = errorBody.get("code").asText();
+            String errorType = errorBody.get("type").asText();
             String errorMessage = errorBody.get("message").asText();
 
-            throw new Exception(String.format("토스 취소 API 실패 [%s]: %s", errorCode, errorMessage));
+            throw new Exception(String.format("취소 API 실패 [%s]: %s", errorType, errorMessage));
         }
     }
 
@@ -256,21 +242,21 @@ public class PaymentService {
         }
 
         try {
-            HttpResponse<String> response = tossPaymentClient.getPaymentByOrderId(orderId);
+            HttpResponse<String> response = portOnePaymentClient.getPaymentByOrderId(orderId);
 
             if(response.statusCode() == 200){
                 return response.body();
             }
             else{
-                String tossErrorCode = objectMapper.readTree(response.body()).get("code").asText();
-                throw new CustomException(TossErrorMapper.fromTossErrorCode(tossErrorCode));
+                String errorType = objectMapper.readTree(response.body()).get("type").asText();
+                throw new CustomException(PortOneErrorMapper.fromPortOneErrorType(errorType));
             }
         }
         catch(CustomException e){
             throw e;
         }
         catch(Exception e){
-            log.error("토스 결제 조회 실패 - orderId: {}", orderId, e);
+            log.error("결제 조회 실패 - orderId: {}", orderId, e);
             throw new CustomException(ErrorCode.PROVIDER_ERROR);
         }
     }
@@ -303,13 +289,13 @@ public class PaymentService {
         }
 
         try {
-            HttpResponse<String> response = tossPaymentClient.cancelPayment(request);
+            HttpResponse<String> response = portOnePaymentClient.cancelPayment(request);
 
             if (response.statusCode() == 200) {
                 return response.body();
             } else {
-                String tossErrorCode = objectMapper.readTree(response.body()).get("code").asText();
-                throw new CustomException(TossErrorMapper.fromTossErrorCode(tossErrorCode));
+                String errorType = objectMapper.readTree(response.body()).get("type").asText();
+                throw new CustomException(PortOneErrorMapper.fromPortOneErrorType(errorType));
             }
         } catch (CustomException e) {
             throw e;
