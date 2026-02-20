@@ -8,6 +8,7 @@ import com.oceandate.backend.domain.payment.repository.PaymentRepository;
 import com.oceandate.backend.global.exception.CustomException;
 import com.oceandate.backend.global.exception.constant.ErrorCode;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -22,6 +23,7 @@ import java.util.UUID;
 
 @Component
 @RequiredArgsConstructor
+@Slf4j
 public class PortOnePaymentClient {
 
     private final PaymentRepository paymentRepository;
@@ -43,6 +45,8 @@ public class PortOnePaymentClient {
 
         String requestBody = objectMapper.writeValueAsString(requestObj);
 
+        log.info("포트원 CONFIRM 요청 - paymentId: {}, body: {}", request.getPaymentId(), requestBody);
+
         HttpRequest httpRequest = HttpRequest.newBuilder()
                 .uri(URI.create("https://api.portone.io/payments/"
                         + request.getPaymentId() + "/confirm"))
@@ -51,7 +55,11 @@ public class PortOnePaymentClient {
                 .POST(HttpRequest.BodyPublishers.ofString(requestBody))
                 .build();
 
-        return HttpClient.newHttpClient().send(httpRequest, HttpResponse.BodyHandlers.ofString());
+        HttpResponse<String> response = HttpClient.newHttpClient().send(httpRequest, HttpResponse.BodyHandlers.ofString());
+
+        log.info("포트원 CONFIRM 응답 - status: {}, body: {}", response.statusCode(), response.body());
+
+        return response;
     }
 
     // 결제 조회
@@ -90,6 +98,26 @@ public class PortOnePaymentClient {
         HttpRequest httpRequest = HttpRequest.newBuilder()
                 .uri(URI.create("https://api.portone.io/payments/"
                         + payment.getPaymentKey() + "/cancel"))
+                .header("Authorization", getAuthorization())
+                .header("Content-Type", "application/json")
+                .header("Idempotency-Key", UUID.randomUUID().toString())
+                .POST(HttpRequest.BodyPublishers.ofString(requestBody))
+                .build();
+
+        return HttpClient.newHttpClient().send(httpRequest, HttpResponse.BodyHandlers.ofString());
+    }
+
+    //롤백용 결제 취소
+    public HttpResponse<String> cancelPaymentByOrderId(String orderId, String cancelReason)
+            throws IOException, InterruptedException {
+
+        ObjectNode requestObj = objectMapper.createObjectNode()
+                .put("reason", cancelReason);
+
+        String requestBody = objectMapper.writeValueAsString(requestObj);
+
+        HttpRequest httpRequest = HttpRequest.newBuilder()
+                .uri(URI.create("https://api.portone.io/payments/" + orderId + "/cancel"))
                 .header("Authorization", getAuthorization())
                 .header("Content-Type", "application/json")
                 .header("Idempotency-Key", UUID.randomUUID().toString())

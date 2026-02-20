@@ -272,7 +272,7 @@ public class OneToOneService {
         OneToOne application = cancelRequest.getApplication();
 
         Payment payment = paymentRepository.findByOrderId(application.getOrderId())
-                .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND_PAYMENT));
+                .orElseThrow(() -> new CustomException(ErrorCode.PAYMENT_NOT_FOUND));
 
         RefundPolicy.RefundAmount refund = calculateRefund(application);
 
