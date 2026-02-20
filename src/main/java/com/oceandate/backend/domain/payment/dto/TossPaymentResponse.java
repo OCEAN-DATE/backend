@@ -14,7 +14,6 @@ import java.util.List;
 public class TossPaymentResponse {
 
     private String version;
-    private String paymentKey;
     private String type;
     private String orderId;
     private String orderName;

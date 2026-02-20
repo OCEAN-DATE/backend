@@ -45,11 +45,11 @@ public class PortOnePaymentClient {
 
         String requestBody = objectMapper.writeValueAsString(requestObj);
 
-        log.info("포트원 CONFIRM 요청 - paymentId: {}, body: {}", request.getPaymentId(), requestBody);
+        log.info("포트원 CONFIRM 요청 - paymentId: {}, body: {}", request.getOrderId(), requestBody);
 
         HttpRequest httpRequest = HttpRequest.newBuilder()
                 .uri(URI.create("https://api.portone.io/payments/"
-                        + request.getPaymentId() + "/confirm"))
+                        + request.getOrderId() + "/confirm"))
                 .header("Authorization", getAuthorization())
                 .header("Content-Type", "application/json")
                 .POST(HttpRequest.BodyPublishers.ofString(requestBody))
@@ -71,7 +71,7 @@ public class PortOnePaymentClient {
 
         HttpRequest httpRequest = HttpRequest.newBuilder()
                 .uri(URI.create("https://api.portone.io/payments/"
-                        + payment.getPaymentKey()))
+                        + payment.getOrderId()))
                 .header("Authorization", getAuthorization())
                 .GET()
                 .build();
@@ -97,7 +97,7 @@ public class PortOnePaymentClient {
 
         HttpRequest httpRequest = HttpRequest.newBuilder()
                 .uri(URI.create("https://api.portone.io/payments/"
-                        + payment.getPaymentKey() + "/cancel"))
+                        + payment.getOrderId() + "/cancel"))
                 .header("Authorization", getAuthorization())
                 .header("Content-Type", "application/json")
                 .header("Idempotency-Key", UUID.randomUUID().toString())

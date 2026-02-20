@@ -147,7 +147,7 @@ public class PaymentService {
 
         // 사전 검증 - 포트원 호출 전이므로 롤백 불필요
         if (application.getStatus() == ApplicationStatus.PAYMENT_COMPLETED) {
-            if (!payment.getPaymentKey().equals(request.getPaymentId())) {
+            if (!payment.getOrderId().equals(request.getOrderId())) {
                 throw new CustomException(ErrorCode.PAYMENT_KEY_MISMATCH);
             }
             return PaymentConfirmResponse.from(payment, application);
@@ -169,7 +169,6 @@ public class PaymentService {
                 PaymentConfirmResponse confirmResponse = objectMapper.readValue(
                         response.body(), PaymentConfirmResponse.class);
 
-                payment.setPaymentKey(request.getPaymentId());
                 payment.setStatus(PaymentStatus.COMPLETED);
                 payment.setPaidAt(LocalDateTime.now());
 

@@ -15,7 +15,6 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Builder
 public class PaymentConfirmResponse {
-    private String paymentKey;
     private String orderId;
     private ApplicationStatus status;
     private Integer amount;
@@ -25,7 +24,6 @@ public class PaymentConfirmResponse {
     public static PaymentConfirmResponse from(Payment payment, Matching application) {
         return PaymentConfirmResponse.builder()
                 .orderId(application.getOrderId())
-                .paymentKey(payment.getPaymentKey())
                 .amount(payment.getFinalAmount())
                 .status(application.getStatus())
                 .paidAt(payment.getPaidAt())

@@ -35,9 +35,6 @@ public class Payment {
     @JoinColumn(name = "member_coupon_id")
     private MemberCoupon memberCoupon;
 
-    @Column
-    private String paymentKey;
-
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private PaymentStatus status;
