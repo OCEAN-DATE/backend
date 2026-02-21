@@ -1,18 +1,24 @@
 package com.oceandate.backend.domain.matching.service;
 
+import com.oceandate.backend.domain.admin.dto.response.CancelRequestList;
+import com.oceandate.backend.domain.matching.dto.CancelResponse;
 import com.oceandate.backend.domain.matching.dto.OneToOneResponse;
 import com.oceandate.backend.domain.matching.dto.UserInfo;
 import com.oceandate.backend.domain.matching.dto.OneToOneRequest;
+import com.oceandate.backend.domain.matching.entity.CancelRequest;
 import com.oceandate.backend.domain.matching.entity.OneToOne;
 import com.oceandate.backend.domain.matching.entity.OneToOneEvent;
-import com.oceandate.backend.domain.matching.entity.OneToOneMatching;
 import com.oceandate.backend.domain.matching.enums.ApplicationStatus;
+import com.oceandate.backend.domain.matching.enums.CancelRequestStatus;
 import com.oceandate.backend.domain.matching.enums.EventStatus;
+import com.oceandate.backend.domain.matching.repository.CancelRequestRepository;
 import com.oceandate.backend.domain.matching.repository.OneToOneEventRepository;
 import com.oceandate.backend.domain.matching.repository.OneToOneMatchingRepository;
 import com.oceandate.backend.domain.matching.repository.OneToOneRepository;
 import com.oceandate.backend.domain.payment.dto.PaymentCancelRequest;
-import com.oceandate.backend.domain.payment.dto.RefundResponse;
+import com.oceandate.backend.domain.payment.entity.Payment;
+import com.oceandate.backend.domain.payment.enums.PaymentStatus;
+import com.oceandate.backend.domain.payment.repository.PaymentRepository;
 import com.oceandate.backend.domain.payment.service.PaymentService;
 import com.oceandate.backend.domain.payment.util.RefundPolicy;
 import com.oceandate.backend.domain.user.entity.Member;
@@ -24,12 +30,12 @@ import com.oceandate.backend.global.sms.SmsService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cglib.core.Local;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -42,7 +48,8 @@ public class OneToOneService {
     private final OneToOneEventRepository oneToOneEventRepository;
     private final OneToOneMatchingRepository matchingRepository;
     private final MemberRepository memberRepository;
-    private final OneToOneMatchingRepository oneToOneMatchingRepository;
+    private final PaymentRepository paymentRepository;
+    private final CancelRequestRepository cancelRequestRepository;
     private final PaymentService paymentService;
     private final SmsService smsService;
 
@@ -84,7 +91,6 @@ public class OneToOneService {
                 .idealType(request.getIdealType())
                 .hobby(request.getHobby())
                 .orderId(orderId)
-                .amount(event.getAmount())
                 .build();
 
         try {
@@ -122,7 +128,7 @@ public class OneToOneService {
 
         UserInfo applicantInfo = UserInfo.from(application);
 
-        if (application.getStatus() == ApplicationStatus.MATCHED) {
+        if (!application.getStatus().isBeforeMatched()) {
             UserInfo partnerInfo = getMatchedPartner(applicationId);
             return OneToOneResponse.fromMatched(application, applicantInfo, partnerInfo);
         }
@@ -170,9 +176,9 @@ public class OneToOneService {
     }
 
     @Transactional
-    public RefundResponse cancelApplication(
+    public CancelResponse requestCancel(
             Long applicationId,
-            String userCancelReason,
+            String cancelReason,
             AccountContext accountContext
     ) {
         OneToOne application = oneToOneRepository.findById(applicationId)
@@ -186,24 +192,25 @@ public class OneToOneService {
             throw new CustomException(ErrorCode.INVALID_CANCEL_STATUS);
         }
 
-        // 환불 계산
-        RefundPolicy.RefundAmount refund = calculateRefund(application);
+        cancelRequestRepository.findByApplicationIdAndStatus(applicationId, CancelRequestStatus.PENDING)
+                .ifPresent(cr -> { throw new CustomException(ErrorCode.CANCEL_REQUEST_ALREADY_EXISTS); });
 
-        // 결제 취소 처리
-        if (refund.getAmount() > 0) {
-            processPaymentCancel(accountContext, application, refund);
+        if (application.getStatus().isBeforeMatched()) {
+            application.setStatus(ApplicationStatus.CANCELLED);
+            application.setCancelledAt(LocalDateTime.now());
+            application.setCancelReason(cancelReason);
+            return CancelResponse.immediate(applicationId);
         }
 
-        // 본인 취소
-        String cancelReason = userCancelReason != null ? userCancelReason : "사용자 요청";
-        application.cancel(cancelReason, refund.getAmount());
+        Member requester = memberRepository.findById(accountContext.getMemberId())
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
-        // MATCHED 상태면 상대방도 취소 + 전액 환불
-        if (application.getStatus() == ApplicationStatus.MATCHED) {
-            cancelCounterpart(application, accountContext);
-        }
+        CancelRequest cancelRequest = CancelRequest.create(application, requester, cancelReason);
+        cancelRequestRepository.save(cancelRequest);
 
-        return RefundResponse.of(applicationId, refund.getAmount(), refund.getRate(), refund.getReason());
+        application.setStatus(ApplicationStatus.CANCEL_REQUESTED);
+
+        return CancelResponse.pending(applicationId, cancelRequest.getId());
     }
 
     private RefundPolicy.RefundAmount calculateRefund(OneToOne application) {
@@ -211,39 +218,18 @@ public class OneToOneService {
             return new RefundPolicy.RefundAmount(0, 0, "결제 전 취소");
         }
 
+        Payment payment = paymentRepository.findByOrderId(application.getOrderId())
+                .orElseThrow(() -> new CustomException(ErrorCode.ORDER_NOT_FOUND));
+
         LocalDateTime eventDate = application.getConfirmedDate();
-        LocalDateTime paymentDate = application.getPaidAt();
+        LocalDateTime paymentDate = payment.getPaidAt();
 
         return RefundPolicy.calculate(
                 eventDate,
                 paymentDate,
                 LocalDateTime.now(),
-                application.getAmount()
+                payment.getFinalAmount()
         );
-    }
-
-    private void cancelCounterpart(OneToOne application, AccountContext accountContext) {
-        OneToOneMatching matching = oneToOneMatchingRepository
-                .findByMaleApplicationOrFemaleApplication(application, application)
-                .orElseThrow(() -> new CustomException(ErrorCode.MATCHING_NOT_FOUND));
-
-        OneToOne counterpart = matching.getMaleApplication().equals(application)
-                ? matching.getFemaleApplication()
-                : matching.getMaleApplication();
-
-        if (!counterpart.getStatus().isCancellable()) {
-            return;
-        }
-
-        RefundPolicy.RefundAmount counterpartRefund = RefundPolicy.fullRefundByCounterpart(
-                counterpart.getAmount()
-        );
-
-        if (counterpartRefund.getAmount() > 0) {
-            processPaymentCancel(accountContext, counterpart, counterpartRefund);
-        }
-
-        counterpart.cancel("상대방 취소로 인한 자동 취소", counterpartRefund.getAmount());
     }
 
     private void processPaymentCancel(
@@ -251,8 +237,11 @@ public class OneToOneService {
             OneToOne target,
             RefundPolicy.RefundAmount refund
     ) {
+        Payment payment = paymentRepository.findByOrderId(target.getOrderId())
+                .orElseThrow(() -> new CustomException(ErrorCode.ORDER_NOT_FOUND));
+
         PaymentCancelRequest cancelRequest = PaymentCancelRequest.builder()
-                .paymentKey(target.getPaymentKey())
+                .orderId(payment.getOrderId())
                 .cancelReason(refund.getReason())
                 .cancelAmount(refund.getAmount())
                 .build();
@@ -265,5 +254,61 @@ public class OneToOneService {
                 .findFirstByMemberIdOrderByCreatedAtDesc(accountContext.getMemberId())
                 .map(OneToOneResponse::from)
                 .orElse(OneToOneResponse.empty());
+    }
+
+    public List<CancelRequestList> getPendingRequests() {
+        return cancelRequestRepository.findByStatusOrderByCreatedAtAsc(CancelRequestStatus.PENDING)
+                .stream()
+                .map(CancelRequestList::of)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public void approveCancelRequest(
+            Long cancelRequestId,
+            AccountContext adminContext
+    ) {
+        CancelRequest cancelRequest = cancelRequestRepository.findById(cancelRequestId)
+                .orElseThrow(() -> new CustomException(ErrorCode.CANCEL_REQUEST_NOT_FOUND));
+
+        if (cancelRequest.getStatus() != CancelRequestStatus.PENDING) {
+            throw new CustomException(ErrorCode.CANCEL_REQUEST_ALREADY_PROCESSED);
+        }
+
+        OneToOne application = cancelRequest.getApplication();
+
+        Payment payment = paymentRepository.findByOrderId(application.getOrderId())
+                .orElseThrow(() -> new CustomException(ErrorCode.PAYMENT_NOT_FOUND));
+
+        RefundPolicy.RefundAmount refund = calculateRefund(application);
+
+        if (refund.getAmount() > 0) {
+            processPaymentCancel(adminContext, application, refund);
+        }
+
+        application.cancel(cancelRequest.getCancelReason(), refund.getAmount());
+        payment.setRefundedAt(LocalDateTime.now());
+        payment.setRefundAmount(refund.getAmount());
+        payment.setStatus(PaymentStatus.CANCELLED);
+
+        cancelRequest.approve((long)refund.getAmount());
+    }
+
+    @Transactional
+    public void rejectCancelRequest(
+            Long cancelRequestId,
+            String adminComment
+    ) {
+        CancelRequest cancelRequest = cancelRequestRepository.findById(cancelRequestId)
+                .orElseThrow(() -> new CustomException(ErrorCode.CANCEL_REQUEST_NOT_FOUND));
+
+        if (cancelRequest.getStatus() != CancelRequestStatus.PENDING) {
+            throw new CustomException(ErrorCode.CANCEL_REQUEST_ALREADY_PROCESSED);
+        }
+
+        OneToOne application = cancelRequest.getApplication();
+        application.setStatus(cancelRequest.getPreviousStatus());
+
+        cancelRequest.reject(adminComment);
     }
 }

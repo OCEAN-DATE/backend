@@ -63,10 +63,9 @@ springdoc:
   default-consumes-media-type: application/json
   default-produces-media-type: application/json
 
-toss:
-  payments:
-    secret-key: ${TOSS_SECRET_KEY}
-    base-url: https://api.tosspayments.com/v1/payments
+portone:
+  api:
+    secret: ${PORTONE_API_SECRET}
 
 cloud:
   aws:

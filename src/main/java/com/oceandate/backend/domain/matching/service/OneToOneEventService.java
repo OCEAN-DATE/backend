@@ -73,6 +73,11 @@ public class OneToOneEventService {
                 .orElseThrow(() -> new CustomException(ErrorCode.EVENT_NOT_FOUND));
 
         List<OneToOne> applications = oneToOneRepository.findByEventIdAndStatus(eventId, ApplicationStatus.PAYMENT_COMPLETED);
+
+        if(!applications.isEmpty()){
+            throw new CustomException(ErrorCode.INVALID_DELETE_STATUS);
+        }
+
         event.setStatus(EventStatus.DELETED);
         event.setDeletedAt(LocalDateTime.now());
     }
