@@ -45,6 +45,14 @@ public class TravelService {
         Member user = memberRepository.findById(userId)
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
+        // 성별 정보 검증
+        if (request.getSex() == null) {
+            throw new CustomException(ErrorCode.SEX_REQUIRED);
+        }
+
+        // 회원 성별 정보 업데이트 (없는 경우)
+        user.updateSex(request.getSex());
+
         TravelEvent event = travelEventRepository.findByIdWithLock(request.getEventId())
                 .orElseThrow(() -> new CustomException(ErrorCode.EVENT_NOT_FOUND));
 
@@ -82,11 +90,11 @@ public class TravelService {
             throw new CustomException(ErrorCode.DUPLICATE_APPLICATION);
         }
 
-        // 새 신청서 생성
-        if (Sex.MAN.equals(user.getSex()) && !event.canApproveMale()) {
+        // 새 신청서 생성 - 신청서의 성별로 정원 체크
+        if (Sex.MAN.equals(request.getSex()) && !event.canApproveMale()) {
             throw new CustomException(ErrorCode.MALE_CAPACITY_FULL);
         }
-        if (Sex.WOMAN.equals(user.getSex()) && !event.canApproveFemale()) {
+        if (Sex.WOMAN.equals(request.getSex()) && !event.canApproveFemale()) {
             throw new CustomException(ErrorCode.FEMALE_CAPACITY_FULL);
         }
 

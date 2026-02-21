@@ -82,4 +82,13 @@ public class Member {
     public boolean isDeleted() {
         return this.deletedAt != null;
     }
+
+    /**
+     * 성별 업데이트 (신청서 작성 시)
+     */
+    public void updateSex(Sex sex) {
+        if (this.sex == null && sex != null) {
+            this.sex = sex;
+        }
+    }
 }
