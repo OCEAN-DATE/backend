@@ -130,7 +130,7 @@ public void updateStatus(Long id, ApplicationStatus status) {
             applications = rotationRepository.findByEventIdAndStatus(eventId, status);
         }
         return applications.stream()
-                .map(RotationResponse::from)
+                .map(app -> RotationResponse.fromDetail(app, UserInfo.from(app)))
                 .toList();
     }
 

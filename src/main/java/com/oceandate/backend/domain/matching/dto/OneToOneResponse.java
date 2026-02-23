@@ -20,6 +20,10 @@ public class OneToOneResponse {
     private Sex sex;
     private String email;
 
+    private Long eventId;
+    private String eventName;
+    private String location;
+
     private ApplicationStatus status;
     private Integer amount;
     private LocalDateTime createdAt;
@@ -48,6 +52,9 @@ public class OneToOneResponse {
                 .amount(oneToOne.getEvent().getAmount())
                 .createdAt(oneToOne.getCreatedAt())
                 .approvedAt(oneToOne.getApprovedAt())
+                .eventId(oneToOne.getEvent().getId())
+                .eventName(oneToOne.getEvent().getEventName())
+                .location(oneToOne.getEvent().getLocation())
                 .orderId(oneToOne.getOrderId())
                 .userId(oneToOne.getMember().getId())
                 .name(oneToOne.getMember().getName())
@@ -66,6 +73,9 @@ public class OneToOneResponse {
                 .createdAt(oneToOne.getCreatedAt())
                 .approvedAt(oneToOne.getApprovedAt())
                 .orderId(oneToOne.getOrderId())
+                .eventId(oneToOne.getEvent().getId())
+                .eventName(oneToOne.getEvent().getEventName())
+                .location(oneToOne.getEvent().getLocation())
                 .userId(oneToOne.getMember().getId())
                 .name(oneToOne.getMember().getName())
                 .sex(oneToOne.getMember().getSex())

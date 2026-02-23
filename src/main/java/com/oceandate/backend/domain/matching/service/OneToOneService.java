@@ -8,6 +8,7 @@ import com.oceandate.backend.domain.matching.dto.OneToOneRequest;
 import com.oceandate.backend.domain.matching.entity.CancelRequest;
 import com.oceandate.backend.domain.matching.entity.OneToOne;
 import com.oceandate.backend.domain.matching.entity.OneToOneEvent;
+import com.oceandate.backend.domain.matching.entity.OneToOneMatching;
 import com.oceandate.backend.domain.matching.enums.ApplicationStatus;
 import com.oceandate.backend.domain.matching.enums.CancelRequestStatus;
 import com.oceandate.backend.domain.matching.enums.EventStatus;
@@ -30,12 +31,13 @@ import com.oceandate.backend.global.sms.SmsService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.cglib.core.Local;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -100,18 +102,26 @@ public class OneToOneService {
         }
     }
 
-    public List<OneToOneResponse> getApplications(ApplicationStatus status) {
-        List<OneToOne> applications;
+    public List<OneToOneResponse> getApplications(Long eventId, ApplicationStatus status) {
+        List<OneToOne> applications = status == null
+                ? oneToOneRepository.findAllWithMember(eventId)
+                : oneToOneRepository.findByStatusWithMember(eventId, status);
 
-        if(status == null){
-            applications = oneToOneRepository.findAll();
-        }
-        else{
-            applications = oneToOneRepository.findByStatus(status);
+        List<OneToOneMatching> matchings = matchingRepository.findByApplications(applications);
+
+        Map<Long, OneToOne> matchedApplicationMap = new HashMap<>();
+        for (OneToOneMatching matching : matchings) {
+            matchedApplicationMap.put(matching.getMaleApplication().getId(), matching.getFemaleApplication());
+            matchedApplicationMap.put(matching.getFemaleApplication().getId(), matching.getMaleApplication());
         }
 
         return applications.stream()
-                .map(OneToOneResponse::from)
+                .map(app -> {
+                    UserInfo applicantInfo = UserInfo.from(app);
+                    OneToOne matchedApp = matchedApplicationMap.get(app.getId());
+                    UserInfo matchedUserInfo = UserInfo.from(matchedApp);
+                    return OneToOneResponse.fromMatched(app, applicantInfo, matchedUserInfo);
+                })
                 .collect(Collectors.toList());
     }
 
@@ -213,7 +223,7 @@ public class OneToOneService {
         return CancelResponse.pending(applicationId, cancelRequest.getId());
     }
 
-    private RefundPolicy.RefundAmount calculateRefund(OneToOne application) {
+    private RefundPolicy.RefundAmount calculateRefund(OneToOne application, LocalDateTime canceledAt) {
         if (!application.getStatus().isRefundRequired()) {
             return new RefundPolicy.RefundAmount(0, 0, "결제 전 취소");
         }
@@ -221,13 +231,10 @@ public class OneToOneService {
         Payment payment = paymentRepository.findByOrderId(application.getOrderId())
                 .orElseThrow(() -> new CustomException(ErrorCode.ORDER_NOT_FOUND));
 
-        LocalDateTime eventDate = application.getConfirmedDate();
-        LocalDateTime paymentDate = payment.getPaidAt();
-
         return RefundPolicy.calculate(
-                eventDate,
-                paymentDate,
-                LocalDateTime.now(),
+                application.getConfirmedDate(),
+                payment.getPaidAt(),
+                canceledAt,
                 payment.getFinalAmount()
         );
     }
@@ -280,7 +287,7 @@ public class OneToOneService {
         Payment payment = paymentRepository.findByOrderId(application.getOrderId())
                 .orElseThrow(() -> new CustomException(ErrorCode.PAYMENT_NOT_FOUND));
 
-        RefundPolicy.RefundAmount refund = calculateRefund(application);
+        RefundPolicy.RefundAmount refund = calculateRefund(application, cancelRequest.getCreatedAt());
 
         if (refund.getAmount() > 0) {
             processPaymentCancel(adminContext, application, refund);
