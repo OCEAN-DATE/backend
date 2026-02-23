@@ -66,6 +66,13 @@ public class TravelEventService {
     @Transactional
     public TravelEventResponse createEvent(TravelEventRequest request) {
         TravelEvent event = request.toEntity();
+
+        // 숙소 연결
+        if (request.getAccommodationIds() != null && !request.getAccommodationIds().isEmpty()) {
+            List<Accommodation> accommodations = accommodationRepository.findAllById(request.getAccommodationIds());
+            event.setAccommodations(accommodations);
+        }
+
         TravelEvent savedEvent = travelEventRepository.save(event);
         return TravelEventResponse.from(savedEvent);
     }
@@ -87,6 +94,15 @@ public class TravelEventService {
         event.setAgeRange(request.getAgeRange());
         event.setAmount(request.getAmount());
         event.setDescription(request.getDescription());
+
+        // 숙소 연결 업데이트
+        if (request.getAccommodationIds() != null) {
+            event.getAccommodations().clear();
+            if (!request.getAccommodationIds().isEmpty()) {
+                List<Accommodation> accommodations = accommodationRepository.findAllById(request.getAccommodationIds());
+                event.setAccommodations(accommodations);
+            }
+        }
 
         return TravelEventResponse.from(event);
     }
@@ -175,15 +191,11 @@ public class TravelEventService {
     // ============= 프로그램 관리 (숙소) =============
 
     /**
-     * 숙소 추가
+     * 숙소 생성 (이벤트와 독립적)
      */
     @Transactional
-    public Accommodation addAccommodation(Long eventId, AccommodationDto dto) {
-        TravelEvent event = travelEventRepository.findById(eventId)
-                .orElseThrow(() -> new CustomException(ErrorCode.EVENT_NOT_FOUND));
-
+    public Accommodation createAccommodation(AccommodationDto dto) {
         Accommodation accommodation = Accommodation.builder()
-                .event(event)
                 .name(dto.getName())
                 .address(dto.getAddress())
                 .checkInTime(dto.getCheckInTime())
@@ -225,12 +237,19 @@ public class TravelEventService {
     }
 
     /**
-     * 숙소 목록 조회
+     * 전체 숙소 목록 조회
      */
-    public List<Accommodation> getAccommodations(Long eventId) {
+    public List<Accommodation> getAllAccommodations() {
+        return accommodationRepository.findAll();
+    }
+
+    /**
+     * 특정 이벤트의 숙소 목록 조회
+     */
+    public List<Accommodation> getAccommodationsByEvent(Long eventId) {
         TravelEvent event = travelEventRepository.findById(eventId)
                 .orElseThrow(() -> new CustomException(ErrorCode.EVENT_NOT_FOUND));
 
-        return accommodationRepository.findByEvent(event);
+        return event.getAccommodations();
     }
 }

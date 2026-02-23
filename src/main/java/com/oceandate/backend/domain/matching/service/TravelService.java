@@ -1,5 +1,6 @@
 package com.oceandate.backend.domain.matching.service;
 
+import com.oceandate.backend.domain.matching.dto.TravelApplicationResponse;
 import com.oceandate.backend.domain.matching.dto.TravelRequest;
 import com.oceandate.backend.domain.matching.dto.TravelResponse;
 import com.oceandate.backend.domain.matching.entity.Travel;
@@ -151,24 +152,30 @@ public class TravelService {
     }
 
     /**
-     * 관리자용 - 신청자 목록 조회
+     * 관리자용 - 신청자 목록 조회 (DTO 반환)
      */
     @Transactional(readOnly = true)
-    public List<Travel> getApplications(Long eventId, ApplicationStatus status) {
+    public List<TravelApplicationResponse> getApplications(Long eventId, ApplicationStatus status) {
+        List<Travel> applications;
+
         if (eventId != null) {
             TravelEvent event = travelEventRepository.findById(eventId)
                     .orElseThrow(() -> new CustomException(ErrorCode.EVENT_NOT_FOUND));
 
             if (status != null) {
-                return travelRepository.findByEventAndStatus(event, status);
+                applications = travelRepository.findByEventAndStatusWithMemberAndEvent(event, status);
+            } else {
+                applications = travelRepository.findByEventWithMemberAndEvent(event);
             }
-            return travelRepository.findByEvent(event);
+        } else if (status != null) {
+            applications = travelRepository.findByStatusWithMemberAndEvent(status);
+        } else {
+            applications = travelRepository.findAllWithMemberAndEvent();
         }
 
-        if (status != null) {
-            return travelRepository.findByStatus(status);
-        }
-        return travelRepository.findAll();
+        return applications.stream()
+                .map(TravelApplicationResponse::from)
+                .toList();
     }
 
     /**
