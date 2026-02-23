@@ -1,5 +1,7 @@
 package com.oceandate.backend.domain.payment.client;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.oceandate.backend.domain.payment.dto.PaymentCancelRequest;
 import com.oceandate.backend.domain.payment.dto.PaymentConfirmRequest;
@@ -8,70 +10,59 @@ import com.oceandate.backend.domain.payment.repository.PaymentRepository;
 import com.oceandate.backend.global.exception.CustomException;
 import com.oceandate.backend.global.exception.constant.ErrorCode;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.util.Base64;
 import java.util.UUID;
 
 @Component
 @RequiredArgsConstructor
-@Slf4j
-public class PortOnePaymentClient {
+public class TossPaymentClient {
 
     private final PaymentRepository paymentRepository;
     private final ObjectMapper objectMapper;
 
-    @Value("${portone.api.secret}")
-    private String apiSecret;
+    @Value("${toss.api.secret-key}")
+    private String secretKey;
 
     private String getAuthorization() {
-        return "PortOne " + apiSecret;
+        String credentials = secretKey + ":";
+        return "Basic " + Base64.getEncoder().encodeToString(credentials.getBytes());
     }
 
-    // 수동 승인
+    // 결제 승인
     public HttpResponse<String> requestConfirm(PaymentConfirmRequest request)
             throws IOException, InterruptedException {
 
-        JsonNode requestObj = objectMapper.createObjectNode()
-                .put("paymentToken", request.getPaymentToken());
+        ObjectNode requestObj = objectMapper.createObjectNode()
+                .put("paymentKey", request.getPaymentKey())
+                .put("orderId", request.getOrderId())
+                .put("amount", request.getAmount());
 
         String requestBody = objectMapper.writeValueAsString(requestObj);
 
-        log.info("포트원 CONFIRM 요청 - paymentId: {}, body: {}", request.getOrderId(), requestBody);
-
         HttpRequest httpRequest = HttpRequest.newBuilder()
-                .uri(URI.create("https://api.portone.io/payments/"
-                        + request.getOrderId() + "/confirm"))
+                .uri(URI.create("https://api.tosspayments.com/v1/payments/confirm"))
                 .header("Authorization", getAuthorization())
                 .header("Content-Type", "application/json")
                 .POST(HttpRequest.BodyPublishers.ofString(requestBody))
                 .build();
 
-        HttpResponse<String> response = HttpClient.newHttpClient().send(httpRequest, HttpResponse.BodyHandlers.ofString());
-
-        log.info("포트원 CONFIRM 응답 - status: {}, body: {}", response.statusCode(), response.body());
-
-        return response;
+        return HttpClient.newHttpClient().send(httpRequest, HttpResponse.BodyHandlers.ofString());
     }
 
     // 결제 조회
     public HttpResponse<String> getPaymentByOrderId(String orderId)
             throws IOException, InterruptedException {
 
-        Payment payment = paymentRepository.findByOrderId(orderId)
-                .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND_PAYMENT));
-
         HttpRequest httpRequest = HttpRequest.newBuilder()
-                .uri(URI.create("https://api.portone.io/payments/"
-                        + payment.getOrderId()))
+                .uri(URI.create("https://api.tosspayments.com/v1/payments/orders/" + orderId))
                 .header("Authorization", getAuthorization())
                 .GET()
                 .build();
@@ -87,17 +78,17 @@ public class PortOnePaymentClient {
                 .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND_PAYMENT));
 
         ObjectNode requestObj = objectMapper.createObjectNode()
-                .put("reason", request.getCancelReason());
+                .put("cancelReason", request.getCancelReason());
 
         if (request.getCancelAmount() != null) {
-            requestObj.put("amount", request.getCancelAmount());
+            requestObj.put("cancelAmount", request.getCancelAmount());
         }
 
         String requestBody = objectMapper.writeValueAsString(requestObj);
 
         HttpRequest httpRequest = HttpRequest.newBuilder()
-                .uri(URI.create("https://api.portone.io/payments/"
-                        + payment.getOrderId() + "/cancel"))
+                .uri(URI.create("https://api.tosspayments.com/v1/payments/"
+                        + payment.getPaymentKey() + "/cancel"))
                 .header("Authorization", getAuthorization())
                 .header("Content-Type", "application/json")
                 .header("Idempotency-Key", UUID.randomUUID().toString())
@@ -107,17 +98,18 @@ public class PortOnePaymentClient {
         return HttpClient.newHttpClient().send(httpRequest, HttpResponse.BodyHandlers.ofString());
     }
 
-    //롤백용 결제 취소
-    public HttpResponse<String> cancelPaymentByOrderId(String orderId, String cancelReason)
+    // 롤백용 - paymentKey로 직접 취소
+    public HttpResponse<String> cancelPaymentByPaymentKey(String paymentKey, String cancelReason)
             throws IOException, InterruptedException {
 
         ObjectNode requestObj = objectMapper.createObjectNode()
-                .put("reason", cancelReason);
+                .put("cancelReason", cancelReason);
 
         String requestBody = objectMapper.writeValueAsString(requestObj);
 
         HttpRequest httpRequest = HttpRequest.newBuilder()
-                .uri(URI.create("https://api.portone.io/payments/" + orderId + "/cancel"))
+                .uri(URI.create("https://api.tosspayments.com/v1/payments/"
+                        + paymentKey + "/cancel"))
                 .header("Authorization", getAuthorization())
                 .header("Content-Type", "application/json")
                 .header("Idempotency-Key", UUID.randomUUID().toString())

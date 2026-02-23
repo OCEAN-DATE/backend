@@ -21,6 +21,9 @@ public class Payment {
     @Column(nullable = false, unique = true)
     private String orderId;
 
+    @Column
+    private String paymentKey;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private MatchingType matchingType;

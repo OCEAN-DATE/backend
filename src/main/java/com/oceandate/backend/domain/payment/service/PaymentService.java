@@ -7,18 +7,17 @@ import com.oceandate.backend.domain.matching.entity.OneToOne;
 import com.oceandate.backend.domain.matching.entity.Rotation;
 import com.oceandate.backend.domain.matching.entity.Travel;
 import com.oceandate.backend.domain.matching.enums.ApplicationStatus;
-import com.oceandate.backend.domain.matching.enums.MatchingType;
 import com.oceandate.backend.domain.matching.repository.OneToOneRepository;
 import com.oceandate.backend.domain.matching.repository.RotationRepository;
 import com.oceandate.backend.domain.matching.repository.TravelRepository;
-import com.oceandate.backend.domain.payment.client.PortOnePaymentClient;
+import com.oceandate.backend.domain.payment.client.TossPaymentClient;
 import com.oceandate.backend.domain.payment.dto.*;
 import com.oceandate.backend.domain.payment.entity.MemberCoupon;
 import com.oceandate.backend.domain.payment.entity.Payment;
 import com.oceandate.backend.domain.payment.enums.PaymentStatus;
 import com.oceandate.backend.domain.payment.repository.MemberCouponRepository;
 import com.oceandate.backend.domain.payment.repository.PaymentRepository;
-import com.oceandate.backend.domain.payment.util.PortOneErrorMapper;
+import com.oceandate.backend.domain.payment.util.TossErrorMapper;
 import com.oceandate.backend.domain.user.entity.Member;
 import com.oceandate.backend.domain.user.entity.Role;
 import com.oceandate.backend.domain.user.repository.MemberRepository;
@@ -46,7 +45,7 @@ public class PaymentService {
     private final TravelRepository travelRepository;
     private final MemberCouponRepository memberCouponRepository;
     private final PaymentRepository paymentRepository;
-    private final PortOnePaymentClient portOnePaymentClient;
+    private final TossPaymentClient tossPaymentClient;
     private final ObjectMapper objectMapper;
 
     @Transactional
@@ -54,8 +53,7 @@ public class PaymentService {
         Member member = memberRepository.findById(accountContext.getMemberId())
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
-        Matching application =
-        switch (request.getMatchingType()) {
+        Matching application = switch (request.getMatchingType()) {
             case ONE_TO_ONE -> oneToOneRepository.findByOrderId(request.getOrderId())
                     .orElseThrow(() -> new CustomException(ErrorCode.ORDER_NOT_FOUND));
             case ROTATION -> rotationRepository.findByOrderId(request.getOrderId())
@@ -95,10 +93,10 @@ public class PaymentService {
 
         Optional<Payment> paymentOpt = paymentRepository.findByOrderId(application.getOrderId());
 
-        if(paymentOpt.isPresent()){
+        if (paymentOpt.isPresent()) {
             Payment payment = paymentOpt.get();
 
-            if(payment.getStatus() == PaymentStatus.COMPLETED){
+            if (payment.getStatus() == PaymentStatus.COMPLETED) {
                 throw new CustomException(ErrorCode.ALREADY_PROCESSED_PAYMENT);
             }
 
@@ -110,6 +108,7 @@ public class PaymentService {
 
             return new PaymentPrepareResponse(finalAmount);
         }
+
         Payment payment = Payment.builder()
                 .orderId(request.getOrderId())
                 .matchingType(request.getMatchingType())
@@ -126,7 +125,6 @@ public class PaymentService {
     }
 
     public PaymentConfirmResponse confirmPayment(PaymentConfirmRequest request) {
-
         Matching application = switch (request.getMatchingType()) {
             case ONE_TO_ONE -> oneToOneRepository.findByOrderIdWithLock(request.getOrderId())
                     .orElseThrow(() -> new CustomException(ErrorCode.ORDER_NOT_FOUND));
@@ -134,7 +132,6 @@ public class PaymentService {
                     .orElseThrow(() -> new CustomException(ErrorCode.ORDER_NOT_FOUND));
             case TRAVEL -> travelRepository.findByOrderId(request.getOrderId())
                     .orElseThrow(() -> new CustomException(ErrorCode.APPLICATION_NOT_FOUND));
-            default -> throw new CustomException(ErrorCode.INVALID_MATCHING_TYPE);
         };
 
         return processPayment(application, request);
@@ -145,9 +142,8 @@ public class PaymentService {
         Payment payment = paymentRepository.findByOrderId(request.getOrderId())
                 .orElseThrow(() -> new CustomException(ErrorCode.ORDER_NOT_FOUND));
 
-        // 사전 검증 - 포트원 호출 전이므로 롤백 불필요
         if (application.getStatus() == ApplicationStatus.PAYMENT_COMPLETED) {
-            if (!payment.getOrderId().equals(request.getOrderId())) {
+            if (!payment.getPaymentKey().equals(request.getPaymentKey())) {
                 throw new CustomException(ErrorCode.PAYMENT_KEY_MISMATCH);
             }
             return PaymentConfirmResponse.from(payment, application);
@@ -161,14 +157,11 @@ public class PaymentService {
             throw new CustomException(ErrorCode.PAYMENT_AMOUNT_MISMATCH);
         }
 
-        // 포트원 호출 - 여기서부터 예외 나면 롤백 시도
         try {
-            HttpResponse<String> response = portOnePaymentClient.requestConfirm(request);
+            HttpResponse<String> response = tossPaymentClient.requestConfirm(request);
 
             if (response.statusCode() == 200) {
-                PaymentConfirmResponse confirmResponse = objectMapper.readValue(
-                        response.body(), PaymentConfirmResponse.class);
-
+                payment.setPaymentKey(request.getPaymentKey());
                 payment.setStatus(PaymentStatus.COMPLETED);
                 payment.setPaidAt(LocalDateTime.now());
 
@@ -181,49 +174,42 @@ public class PaymentService {
                 try {
                     paymentRepository.flush();
                 } catch (Exception dbException) {
-                    log.error("DB 저장 실패, 결제 취소 시도 - orderId: {}", request.getOrderId(), dbException);
-                    rollbackSafely(request.getOrderId());
+                    log.error("DB 저장 실패, 결제 취소 시도 - orderId: {}, paymentKey: {}",
+                            request.getOrderId(), request.getPaymentKey(), dbException);
+                    rollbackSafely(request.getPaymentKey());
                     throw new CustomException(ErrorCode.PAYMENT_DB_SAVE_FAILED);
                 }
 
-                return confirmResponse;
+                return PaymentConfirmResponse.from(payment, application);
 
             } else {
-                // 포트원이 에러 반환 → 승인 안 된 것이므로 롤백 불필요
-                String errorType = objectMapper.readTree(response.body()).get("type").asText();
-                throw new CustomException(PortOneErrorMapper.fromPortOneErrorType(errorType));
+                String errorCode = objectMapper.readTree(response.body()).get("code").asText();
+                throw new CustomException(TossErrorMapper.fromTossErrorCode(errorCode));
             }
 
         } catch (CustomException e) {
             throw e;
         } catch (Exception e) {
-            // 네트워크 오류 등 → 승인 됐을 수도 있으니 롤백 시도
             log.error("결제 승인 중 예외 발생, 롤백 시도 - orderId: {}", request.getOrderId(), e.getMessage());
-            rollbackSafely(request.getOrderId());
+            rollbackSafely(request.getPaymentKey());
             throw new CustomException(ErrorCode.PAYMENT_CONFIRMATION_FAILED);
         }
     }
 
-    private void rollbackSafely(String orderId) {
+    private void rollbackSafely(String paymentKey) {
         try {
-            rollbackPortOnePayment(orderId, "결제 오류로 인한 자동 취소");
-            log.info("결제 자동 취소 완료 - orderId: {}", orderId);
+            HttpResponse<String> cancelResponse =
+                    tossPaymentClient.cancelPaymentByPaymentKey(paymentKey, "결제 오류로 인한 자동 취소");
+            if (cancelResponse.statusCode() == 200) {
+                log.info("결제 자동 취소 완료 - paymentKey: {}", paymentKey);
+            } else {
+                log.error("결제 취소 실패! 수동 처리 필요 - paymentKey: {}, response: {}",
+                        paymentKey, cancelResponse.body());
+            }
         } catch (Exception cancelException) {
-            log.error("결제 취소 실패! 수동 처리 필요 - orderId: {}", orderId, cancelException);
+            log.error("결제 취소 실패! 수동 처리 필요 - paymentKey: {}", paymentKey, cancelException);
         }
     }
-
-    private void rollbackPortOnePayment(String orderId, String cancelReason) throws Exception {
-        HttpResponse<String> cancelResponse = portOnePaymentClient.cancelPaymentByOrderId(orderId, cancelReason);
-
-        if (cancelResponse.statusCode() != 200) {
-            JsonNode errorBody = objectMapper.readTree(cancelResponse.body());
-            String errorType = errorBody.get("type").asText();
-            String errorMessage = errorBody.get("message").asText();
-            throw new Exception(String.format("취소 API 실패 [%s]: %s", errorType, errorMessage));
-        }
-    }
-
 
     public String getPaymentByOrderId(AccountContext accountContext, String orderId) {
         Member member = memberRepository.findById(accountContext.getMemberId())
@@ -233,34 +219,30 @@ public class PaymentService {
                 .orElseThrow(() -> new CustomException(ErrorCode.ORDER_NOT_FOUND));
 
         Matching application = switch (payment.getMatchingType()) {
-            case ONE_TO_ONE -> oneToOneRepository.findByOrderIdWithLock(orderId)
+            case ONE_TO_ONE -> oneToOneRepository.findByOrderId(orderId)
                     .orElseThrow(() -> new CustomException(ErrorCode.ORDER_NOT_FOUND));
-            case ROTATION -> rotationRepository.findByOrderIdWithLock(orderId)
+            case ROTATION -> rotationRepository.findByOrderId(orderId)
                     .orElseThrow(() -> new CustomException(ErrorCode.ORDER_NOT_FOUND));
             case TRAVEL -> travelRepository.findByOrderId(orderId)
                     .orElseThrow(() -> new CustomException(ErrorCode.APPLICATION_NOT_FOUND));
-            default -> throw new CustomException(ErrorCode.INVALID_MATCHING_TYPE);
         };
 
-        if(!member.getRole().equals(Role.ADMIN) && !application.getMember().getId().equals(member.getId())){
+        if (!member.getRole().equals(Role.ADMIN) && !application.getMember().getId().equals(member.getId())) {
             throw new CustomException(ErrorCode.ACCESS_DENIED);
         }
 
         try {
-            HttpResponse<String> response = portOnePaymentClient.getPaymentByOrderId(orderId);
+            HttpResponse<String> response = tossPaymentClient.getPaymentByOrderId(orderId);
 
-            if(response.statusCode() == 200){
+            if (response.statusCode() == 200) {
                 return response.body();
+            } else {
+                String errorCode = objectMapper.readTree(response.body()).get("code").asText();
+                throw new CustomException(TossErrorMapper.fromTossErrorCode(errorCode));
             }
-            else{
-                String errorType = objectMapper.readTree(response.body()).get("type").asText();
-                throw new CustomException(PortOneErrorMapper.fromPortOneErrorType(errorType));
-            }
-        }
-        catch(CustomException e){
+        } catch (CustomException e) {
             throw e;
-        }
-        catch(Exception e){
+        } catch (Exception e) {
             log.error("결제 조회 실패 - orderId: {}", orderId, e);
             throw new CustomException(ErrorCode.PROVIDER_ERROR);
         }
@@ -273,17 +255,16 @@ public class PaymentService {
         Payment payment = paymentRepository.findByOrderId(request.getOrderId())
                 .orElseThrow(() -> new CustomException(ErrorCode.ORDER_NOT_FOUND));
 
-        Matching application =
-                switch (payment.getMatchingType()) {
-                    case ONE_TO_ONE -> oneToOneRepository.findByOrderId(payment.getOrderId())
-                            .orElseThrow(() -> new CustomException(ErrorCode.ORDER_NOT_FOUND));
-                    case ROTATION -> rotationRepository.findByOrderId(payment.getOrderId())
-                            .orElseThrow(() -> new CustomException(ErrorCode.ORDER_NOT_FOUND));
-                    case TRAVEL -> travelRepository.findByOrderId(payment.getOrderId())
-                            .orElseThrow(() -> new CustomException(ErrorCode.ORDER_NOT_FOUND));
-                };
+        Matching application = switch (payment.getMatchingType()) {
+            case ONE_TO_ONE -> oneToOneRepository.findByOrderId(payment.getOrderId())
+                    .orElseThrow(() -> new CustomException(ErrorCode.ORDER_NOT_FOUND));
+            case ROTATION -> rotationRepository.findByOrderId(payment.getOrderId())
+                    .orElseThrow(() -> new CustomException(ErrorCode.ORDER_NOT_FOUND));
+            case TRAVEL -> travelRepository.findByOrderId(payment.getOrderId())
+                    .orElseThrow(() -> new CustomException(ErrorCode.ORDER_NOT_FOUND));
+        };
 
-        if(!member.getRole().equals(Role.ADMIN) && !application.getMember().getId().equals(member.getId())){
+        if (!member.getRole().equals(Role.ADMIN) && !application.getMember().getId().equals(member.getId())) {
             throw new CustomException(ErrorCode.ACCESS_DENIED);
         }
 
@@ -294,7 +275,7 @@ public class PaymentService {
         }
 
         try {
-            HttpResponse<String> response = portOnePaymentClient.cancelPayment(request);
+            HttpResponse<String> response = tossPaymentClient.cancelPayment(request);
 
             if (response.statusCode() == 200) {
                 payment.setStatus(PaymentStatus.CANCELLED);
@@ -305,8 +286,8 @@ public class PaymentService {
                 application.setStatus(ApplicationStatus.CANCELLED);
                 return response.body();
             } else {
-                String errorType = objectMapper.readTree(response.body()).get("type").asText();
-                throw new CustomException(PortOneErrorMapper.fromPortOneErrorType(errorType));
+                String errorCode = objectMapper.readTree(response.body()).get("code").asText();
+                throw new CustomException(TossErrorMapper.fromTossErrorCode(errorCode));
             }
         } catch (CustomException e) {
             throw e;
