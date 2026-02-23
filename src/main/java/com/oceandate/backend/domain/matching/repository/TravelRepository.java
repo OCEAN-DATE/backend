@@ -52,4 +52,20 @@ public interface TravelRepository extends JpaRepository<Travel, Long> {
             @Param("status") ApplicationStatus status,
             @Param("before") LocalDateTime before
     );
+
+    // 관리자용: Member와 Event를 함께 조회
+    @Query("SELECT t FROM Travel t JOIN FETCH t.member JOIN FETCH t.event")
+    List<Travel> findAllWithMemberAndEvent();
+
+    @Query("SELECT t FROM Travel t JOIN FETCH t.member JOIN FETCH t.event WHERE t.status = :status")
+    List<Travel> findByStatusWithMemberAndEvent(@Param("status") ApplicationStatus status);
+
+    @Query("SELECT t FROM Travel t JOIN FETCH t.member JOIN FETCH t.event WHERE t.event = :event")
+    List<Travel> findByEventWithMemberAndEvent(@Param("event") TravelEvent event);
+
+    @Query("SELECT t FROM Travel t JOIN FETCH t.member JOIN FETCH t.event WHERE t.event = :event AND t.status = :status")
+    List<Travel> findByEventAndStatusWithMemberAndEvent(
+            @Param("event") TravelEvent event,
+            @Param("status") ApplicationStatus status
+    );
 }

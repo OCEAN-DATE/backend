@@ -4,6 +4,7 @@ import com.oceandate.backend.domain.admin.dto.response.UserListResponse;
 import com.oceandate.backend.domain.admin.service.AdminService;
 import com.oceandate.backend.domain.matching.dto.AccommodationDto;
 import com.oceandate.backend.domain.matching.dto.RotationResponse;
+import com.oceandate.backend.domain.matching.dto.TravelApplicationResponse;
 import com.oceandate.backend.domain.matching.dto.TravelEventRequest;
 import com.oceandate.backend.domain.matching.dto.TravelEventResponse;
 import com.oceandate.backend.domain.matching.dto.TravelScheduleDto;
@@ -109,11 +110,22 @@ public class AdminController {
     @Operation(summary = "[관리자] 여행 소개팅 신청자 목록 조회", description = "eventId와 status 파라미터로 필터링 가능합니다. 둘 다 null이면 전체 조회")
     @GetMapping("/travel/applications")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<List<Travel>> getTravelApplications(
+    public ResponseEntity<List<TravelApplicationResponse>> getTravelApplications(
             @RequestParam(required = false) Long eventId,
             @RequestParam(required = false) ApplicationStatus status
     ) {
-        List<Travel> applications = travelService.getApplications(eventId, status);
+        List<TravelApplicationResponse> applications = travelService.getApplications(eventId, status);
+        return ResponseEntity.ok(applications);
+    }
+
+    @Operation(summary = "[관리자] 특정 여행 이벤트의 신청자 목록 조회", description = "특정 여행 이벤트에 신청한 사람들의 목록을 조회합니다. status 파라미터로 필터링 가능")
+    @GetMapping("/travel/events/{eventId}/applications")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<TravelApplicationResponse>> getTravelEventApplications(
+            @PathVariable Long eventId,
+            @RequestParam(required = false) ApplicationStatus status
+    ) {
+        List<TravelApplicationResponse> applications = travelService.getApplications(eventId, status);
         return ResponseEntity.ok(applications);
     }
 
