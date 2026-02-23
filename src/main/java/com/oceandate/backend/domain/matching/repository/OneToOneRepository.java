@@ -25,4 +25,10 @@ public interface OneToOneRepository extends JpaRepository<OneToOne, Long> {
     List<OneToOne> findByEventIdAndStatus(Long eventId, ApplicationStatus applicationStatus);
 
     Optional<OneToOne> findFirstByMemberIdOrderByCreatedAtDesc(Long memberId);
+
+    @Query("SELECT o FROM OneToOne o JOIN FETCH o.member JOIN FETCH o.event WHERE o.event.id = :eventId")
+    List<OneToOne> findAllWithMember(Long eventId);
+
+    @Query("SELECT o FROM OneToOne o JOIN FETCH o.member JOIN FETCH o.event WHERE o.event.id = :eventId AND o.status = :status")
+    List<OneToOne> findByStatusWithMember(Long eventId, ApplicationStatus status);
 }

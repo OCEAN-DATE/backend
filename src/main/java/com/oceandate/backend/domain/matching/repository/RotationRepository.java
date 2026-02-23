@@ -29,10 +29,10 @@ public interface RotationRepository extends JpaRepository<Rotation, Long> {
             "AND (o.status = 'APPROVED' OR o.status = 'PAYMENT_PENDING' OR o.status = 'PAYMENT_COMPLETED')")
     List<Rotation> findByEventIdAndApproved(Long eventId);
 
-    @Query("SELECT o FROM Rotation o WHERE o.event.id = :eventId")
+    @Query("SELECT r FROM Rotation r JOIN FETCH r.member JOIN FETCH r.event WHERE r.event.id = :eventId")
     List<Rotation> findByEventId(Long eventId);
 
-    @Query("SELECT o FROM Rotation o WHERE o.event.id = :eventId AND o.status = :status")
+    @Query("SELECT r FROM Rotation r JOIN FETCH r.member JOIN FETCH r.event WHERE r.event.id = :eventId AND r.status = :status")
     List<Rotation> findByEventIdAndStatus(Long eventId, ApplicationStatus status);
 
     @Query("SELECT o FROM Rotation o WHERE o.id = :applicationId AND o.event.id = :eventId")

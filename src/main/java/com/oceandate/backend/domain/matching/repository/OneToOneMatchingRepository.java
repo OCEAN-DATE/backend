@@ -10,17 +10,6 @@ import java.util.Optional;
 
 public interface OneToOneMatchingRepository extends JpaRepository<OneToOneMatching, Long> {
 
-
-    @Query("SELECT m FROM OneToOneMatching m " +
-            "JOIN FETCH m.event " +
-            "JOIN FETCH m.maleApplication ma " +
-            "JOIN FETCH ma.member " +
-            "JOIN FETCH m.femaleApplication fa " +
-            "JOIN FETCH fa.member " +
-            "WHERE m.event.id = :eventId " +
-            "ORDER BY m.matchedAt DESC")
-    List<OneToOneMatching> findAllByEventId(Long eventId);
-
     boolean existsByMaleApplicationIdOrFemaleApplicationId(Long maleId, Long femaleId);
 
     @Query("SELECT m FROM OneToOneMatching m " +
@@ -33,5 +22,7 @@ public interface OneToOneMatchingRepository extends JpaRepository<OneToOneMatchi
             "   OR m.femaleApplication.id = :applicationId ")
     Optional<OneToOneMatching> findByApplicationId(Long applicationId);
 
-    Optional<OneToOneMatching> findByMaleApplicationOrFemaleApplication(OneToOne application, OneToOne application1);
+    @Query("SELECT m FROM OneToOneMatching m JOIN FETCH m.maleApplication JOIN FETCH m.femaleApplication JOIN FETCH m.maleApplication.member JOIN FETCH m.femaleApplication.member WHERE m.maleApplication IN :applications OR m.femaleApplication IN :applications")
+    List<OneToOneMatching> findByApplications(List<OneToOne> applications);
+
 }
