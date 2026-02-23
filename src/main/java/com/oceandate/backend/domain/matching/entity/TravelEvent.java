@@ -67,7 +67,12 @@ public class TravelEvent {
     @Builder.Default
     private List<TravelSchedule> schedules = new ArrayList<>();
 
-    @OneToMany(mappedBy = "event", cascade = CascadeType.ALL, orphanRemoval = true)
+    @ManyToMany
+    @JoinTable(
+            name = "travel_event_accommodation",
+            joinColumns = @JoinColumn(name = "event_id"),
+            inverseJoinColumns = @JoinColumn(name = "accommodation_id")
+    )
     @Builder.Default
     private List<Accommodation> accommodations = new ArrayList<>();
 
