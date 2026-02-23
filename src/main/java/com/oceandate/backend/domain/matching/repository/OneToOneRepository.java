@@ -11,12 +11,10 @@ import java.util.List;
 import java.util.Optional;
 
 public interface OneToOneRepository extends JpaRepository<OneToOne, Long> {
-    List<OneToOne> findByMemberId(Long userId);
     List<OneToOne> findByStatus(ApplicationStatus status);
     Optional<OneToOne> findByOrderId(String orderId);
     Boolean existsByMemberIdAndEventId(Long memberId, Long eventId);
     Optional<OneToOne> findByIdAndEventId(Long applicationId, Long id);
-    Optional<OneToOne> findByPaymentKey(String paymentKey);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT o FROM OneToOne o WHERE o.orderId = :orderId")
@@ -26,4 +24,13 @@ public interface OneToOneRepository extends JpaRepository<OneToOne, Long> {
     List<OneToOne> findByEventIdAndStatus(Long eventId, ApplicationStatus applicationStatus);
 
     Optional<OneToOne> findFirstByMemberIdOrderByCreatedAtDesc(Long memberId);
+
+    @Query("SELECT o FROM OneToOne o JOIN FETCH o.member JOIN FETCH o.event WHERE o.event.id = :eventId")
+    List<OneToOne> findAllWithMember(Long eventId);
+
+    @Query("SELECT o FROM OneToOne o JOIN FETCH o.member JOIN FETCH o.event WHERE o.event.id = :eventId AND o.status = :status")
+    List<OneToOne> findByStatusWithMember(Long eventId, ApplicationStatus status);
+
+    @Query("SELECT o FROM OneToOne o JOIN FETCH o.member JOIN FETCH o.event WHERE o.member.id = :memberId")
+    List<OneToOne> findByMemberId(Long memberId);
 }

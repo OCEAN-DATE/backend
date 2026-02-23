@@ -16,13 +16,4 @@ public enum PaymentMethod {
     GAME_GIFT_CERTIFICATE("게임문화상품권");
 
     private final String displayName;
-
-    public static PaymentMethod fromTossMethod(String tossMethod) {
-        for (PaymentMethod method : values()) {
-            if (method.displayName.equals(tossMethod)) {
-                return method;
-            }
-        }
-        throw new IllegalArgumentException("지원하지 않는 결제 수단: " + tossMethod);
-    }
 }

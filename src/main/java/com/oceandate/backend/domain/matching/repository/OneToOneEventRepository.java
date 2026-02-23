@@ -8,4 +8,6 @@ import java.util.List;
 
 public interface OneToOneEventRepository extends JpaRepository<OneToOneEvent, Long> {
     List<OneToOneEvent> findByStatus(EventStatus status);
+
+    List<OneToOneEvent> findByStatusNot(EventStatus eventStatus);
 }

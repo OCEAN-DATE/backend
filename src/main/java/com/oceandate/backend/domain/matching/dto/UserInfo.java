@@ -2,6 +2,7 @@ package com.oceandate.backend.domain.matching.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.oceandate.backend.domain.matching.entity.OneToOne;
+import com.oceandate.backend.domain.matching.entity.Rotation;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -30,6 +31,17 @@ public class UserInfo {
                 .introduction(oneToOne.getIntroduction())
                 .idealType(oneToOne.getIdealType())
                 .hobby(oneToOne.getHobby())
+                .build();
+    }
+
+    public static UserInfo from(Rotation rotation) {
+        if (rotation == null) return null;
+        return UserInfo.builder()
+                .userId(rotation.getMember().getId())
+                .name(rotation.getMember().getName())
+                .email(rotation.getMember().getEmail())
+                .job(rotation.getJob())
+                .introduction(rotation.getIntroduction())
                 .build();
     }
 }

@@ -46,12 +46,13 @@ public class OneToOneController {
     }
 
     @Operation(summary = "[관리자] 일대일 소개팅 신청 목록 조회", description = "status를 null로 두면 전체 목록 조회")
-    @GetMapping("/applications")
+    @GetMapping("/{eventId}/applications")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<OneToOneResponse>> getApplications(
+            @PathVariable Long eventId,
             @RequestParam(required = false) ApplicationStatus status){
 
-        List<OneToOneResponse> applications = oneToOneService.getApplications(status);
+        List<OneToOneResponse> applications = oneToOneService.getApplications(eventId, status);
 
         return ResponseEntity.ok(applications);
     }
@@ -166,13 +167,13 @@ public class OneToOneController {
 
     @Operation(summary = "일대일 신청 취소")
     @DeleteMapping("/applications/{applicationId}")
-    public ResponseEntity<RefundResponse> cancelApplication(
+    public ResponseEntity<CancelResponse> cancelApplication(
             @PathVariable Long applicationId,
             @RequestBody(required = false) CancelRequest request,
             @AuthenticationPrincipal AccountContext accountContext
     ) {
         String cancelReason = request != null ? request.getCancelReason() : null;
-        RefundResponse response = oneToOneService.cancelApplication(
+        CancelResponse response = oneToOneService.requestCancel(
                 applicationId,
                 cancelReason,
                 accountContext

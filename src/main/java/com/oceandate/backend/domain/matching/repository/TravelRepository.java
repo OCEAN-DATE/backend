@@ -68,4 +68,5 @@ public interface TravelRepository extends JpaRepository<Travel, Long> {
             @Param("event") TravelEvent event,
             @Param("status") ApplicationStatus status
     );
+    Optional<Travel> findByOrderId(String orderId);
 }

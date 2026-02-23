@@ -19,6 +19,10 @@ public class RotationResponse {
     private Sex sex;
     private String email;
 
+    private Long eventId;
+    private String eventName;
+    private String location;
+
     private ApplicationStatus status;
     private String orderId;
     private Integer amount;
@@ -41,10 +45,13 @@ public class RotationResponse {
         return RotationResponse.builder()
                 .id(rotation.getId())
                 .status(rotation.getStatus())
-                .amount(rotation.getAmount())
+                .amount(rotation.getEvent().getAmount())
                 .createdAt(rotation.getCreatedAt())
                 .approvedAt(rotation.getApprovedAt())
                 .orderId(rotation.getOrderId())
+                .eventId(rotation.getEvent().getId())
+                .eventName(rotation.getEvent().getEventName())
+                .location(rotation.getEvent().getLocation())
                 .userId(rotation.getMember().getId())
                 .name(rotation.getMember().getName())
                 .sex(rotation.getMember().getSex())
@@ -57,11 +64,14 @@ public class RotationResponse {
         return RotationResponse.builder()
                 .id(rotation.getId())
                 .status(rotation.getStatus())
-                .amount(rotation.getAmount())
+                .amount(rotation.getEvent().getAmount())
                 .confirmedDate(rotation.getConfirmedDate())
                 .createdAt(rotation.getCreatedAt())
                 .approvedAt(rotation.getApprovedAt())
                 .orderId(rotation.getOrderId())
+                .eventId(rotation.getEvent().getId())
+                .eventName(rotation.getEvent().getEventName())
+                .location(rotation.getEvent().getLocation())
                 .userId(rotation.getMember().getId())
                 .name(rotation.getMember().getName())
                 .sex(rotation.getMember().getSex())

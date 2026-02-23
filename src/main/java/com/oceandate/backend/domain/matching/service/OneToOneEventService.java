@@ -56,15 +56,11 @@ public class OneToOneEventService {
     public List<OneToOneEventResponse> getEvents(EventStatus status) {
         List<OneToOneEvent> response;
 
-        if(status == null){
-           response = oneToOneEventRepository.findAll();
-
-           return response.stream()
-                   .map(OneToOneEventResponse::from)
-                   .collect(Collectors.toList());
+        if (status == null) {
+            response = oneToOneEventRepository.findByStatusNot(EventStatus.DELETED);
+        } else {
+            response = oneToOneEventRepository.findByStatus(status);
         }
-
-        response = oneToOneEventRepository.findByStatus(status);
 
         return response.stream()
                 .map(OneToOneEventResponse::from)
@@ -77,6 +73,11 @@ public class OneToOneEventService {
                 .orElseThrow(() -> new CustomException(ErrorCode.EVENT_NOT_FOUND));
 
         List<OneToOne> applications = oneToOneRepository.findByEventIdAndStatus(eventId, ApplicationStatus.PAYMENT_COMPLETED);
+
+        if(!applications.isEmpty()){
+            throw new CustomException(ErrorCode.INVALID_DELETE_STATUS);
+        }
+
         event.setStatus(EventStatus.DELETED);
         event.setDeletedAt(LocalDateTime.now());
     }
