@@ -64,6 +64,12 @@ public class OneToOneService {
         Member user = memberRepository.findById(userId)
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
+        // 성별 정보 검증 및 업데이트
+        if (request.getSex() == null) {
+            throw new CustomException(ErrorCode.SEX_REQUIRED);
+        }
+        user.updateSex(request.getSex());
+
         OneToOneEvent event = oneToOneEventRepository.findById(request.getEventId())
                 .orElseThrow(() -> new CustomException(ErrorCode.EVENT_NOT_FOUND));
 

@@ -53,6 +53,12 @@ public class RotationService {
         Member user = memberRepository.findById(userId)
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
+        // 성별 정보 검증 및 업데이트
+        if (request.getSex() == null) {
+            throw new CustomException(ErrorCode.SEX_REQUIRED);
+        }
+        user.updateSex(request.getSex());
+
         RotationEvent event = rotationEventRepository.findByIdWithLock(request.getEventId())
                 .orElseThrow(() -> new CustomException(ErrorCode.EVENT_NOT_FOUND));
 
@@ -65,10 +71,10 @@ public class RotationService {
             throw new CustomException(ErrorCode.DUPLICATE_APPLICATION);
         }
 
-        if (Sex.MAN.equals(user.getSex()) && !event.canApproveMale()) {
+        if (Sex.MAN.equals(request.getSex()) && !event.canApproveMale()) {
             throw new CustomException(ErrorCode.MALE_CAPACITY_FULL);
         }
-        if (Sex.WOMAN.equals(user.getSex()) && !event.canApproveFemale()) {
+        if (Sex.WOMAN.equals(request.getSex()) && !event.canApproveFemale()) {
             throw new CustomException(ErrorCode.FEMALE_CAPACITY_FULL);
         }
 

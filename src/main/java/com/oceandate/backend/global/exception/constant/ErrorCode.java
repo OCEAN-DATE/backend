@@ -37,6 +37,7 @@ public enum ErrorCode {
     APPLICATION_NOT_FOUND("APPLICATION_404", "신청을 찾을 수 없습니다."),
     DUPLICATE_APPLICATION("APPLICATION_409", "이미 신청한 이벤트입니다."),
     INVALID_APPLICATION_STATUS("APPLICATION_400", "잘못된 신청 상태입니다."),
+    SEX_REQUIRED("APPLICATION_400", "성별 정보가 필요합니다."),
     ONLY_PENDING_CAN_APPROVE("APPLICATION_400", "대기 중인 신청만 승인할 수 있습니다."),
     ONLY_PENDING_CAN_REJECT("APPLICATION_400", "대기 중인 신청만 반려할 수 있습니다."),
     ONLY_APPROVED_CAN_CANCEL("APPLICATION_400", "승인된 신청만 취소할 수 있습니다."),

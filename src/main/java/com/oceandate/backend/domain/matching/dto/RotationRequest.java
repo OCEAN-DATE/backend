@@ -1,5 +1,6 @@
 package com.oceandate.backend.domain.matching.dto;
 
+import com.oceandate.backend.domain.user.entity.Sex;
 import lombok.*;
 
 @Getter
@@ -9,6 +10,7 @@ import lombok.*;
 @Builder
 public class RotationRequest {
     private Long eventId;
+    private Sex sex;
     private String job;
     private String introduction;
 }
