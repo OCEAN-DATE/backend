@@ -12,7 +12,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class PaymentConfirmRequest {
-    private String paymentToken;
+    private String paymentKey;
     private String orderId;
     private Integer amount;
     private MatchingType matchingType;

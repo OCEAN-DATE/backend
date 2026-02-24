@@ -14,6 +14,8 @@ public enum ApplicationStatus {
     PAYMENT_COMPLETED(true, true, true, "결제완료"),
     CANCEL_REQUESTED(false, false, true, "취소요청중"),
     CANCELLED(false, false, false, "취소됨"),
+    PARTNER_CANCELLED_BEFORE_PAYMENT(true, false, false, "상대방취소(결제전)"),
+    PARTNER_CANCELLED_AFTER_PAYMENT(false, true, false, "상대방취소(결제후)"),
     COMPLETED(false, false, false, "이용완료"),
     NO_SHOW(false, false, false, "노쇼");
 

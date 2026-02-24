@@ -59,9 +59,14 @@ public class OneToOneMatchingService {
                 .femaleApplication(femaleApplication)
                 .build();
 
-        maleApplication.setStatus(ApplicationStatus.MATCHED);
+        maleApplication.setStatus(maleApplication.getStatus() == ApplicationStatus.PARTNER_CANCELLED_AFTER_PAYMENT
+                ? ApplicationStatus.PAYMENT_COMPLETED
+                : ApplicationStatus.PAYMENT_PENDING);
         maleApplication.setConfirmedDate(request.getConfirmedDate());
-        femaleApplication.setStatus(ApplicationStatus.MATCHED);
+
+        femaleApplication.setStatus(femaleApplication.getStatus() == ApplicationStatus.PARTNER_CANCELLED_AFTER_PAYMENT
+                ? ApplicationStatus.PAYMENT_COMPLETED
+                : ApplicationStatus.PAYMENT_PENDING);
         femaleApplication.setConfirmedDate(request.getConfirmedDate());
 
         matchingRepository.save(matching);
