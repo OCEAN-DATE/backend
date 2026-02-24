@@ -17,10 +17,6 @@ public class Accommodation {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "event_id", nullable = false)
-    private TravelEvent event;
-
     @Column(nullable = false)
     private String name;  // 숙소명
 
