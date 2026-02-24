@@ -41,6 +41,17 @@ spring:
             user-info-uri: https://kapi.kakao.com/v2/user/me
             user-name-attribute: id
 
+  mail:
+    port: 587
+    host: smtp.gmail.com
+    properties:
+      mail:
+        smtp:
+          auth: true
+          timeout: 5000
+          starttls:
+            enable: true
+
 logging:
   level:
     org.springframework.security: DEBUG
