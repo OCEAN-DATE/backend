@@ -12,6 +12,8 @@ public interface OneToOneMatchingRepository extends JpaRepository<OneToOneMatchi
 
     boolean existsByMaleApplicationIdOrFemaleApplicationId(Long maleId, Long femaleId);
 
+    Optional<OneToOneMatching> findByMaleApplicationOrFemaleApplication(OneToOne maleApplication, OneToOne femaleApplication);
+
     @Query("SELECT m FROM OneToOneMatching m " +
             "JOIN FETCH m.event " +
             "JOIN FETCH m.maleApplication ma " +

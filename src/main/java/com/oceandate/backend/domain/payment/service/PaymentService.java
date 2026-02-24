@@ -270,7 +270,8 @@ public class PaymentService {
 
         if (application.getStatus() != ApplicationStatus.PAYMENT_COMPLETED
                 && application.getStatus() != ApplicationStatus.MATCHED
-                && application.getStatus() != ApplicationStatus.CANCEL_REQUESTED) {
+                && application.getStatus() != ApplicationStatus.CANCEL_REQUESTED
+                && application.getStatus() != ApplicationStatus.PARTNER_CANCELLED_AFTER_PAYMENT) {
             throw new CustomException(ErrorCode.INVALID_CANCEL_STATUS);
         }
 

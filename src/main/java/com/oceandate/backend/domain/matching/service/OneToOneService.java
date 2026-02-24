@@ -284,6 +284,17 @@ public class OneToOneService {
 
         OneToOne application = cancelRequest.getApplication();
 
+        if (application.getStatus() == ApplicationStatus.PAYMENT_PENDING || application.getStatus() == ApplicationStatus.MATCHED) {
+            cancelMatchingAndUpdatePartner(application);
+            application.cancel(cancelRequest.getCancelReason(), 0);
+            cancelRequest.approve(0L);
+            return;
+        }
+
+        if (application.getStatus() != ApplicationStatus.PAYMENT_COMPLETED) {
+            throw new CustomException(ErrorCode.INVALID_APPLICATION_STATUS);
+        }
+
         Payment payment = paymentRepository.findByOrderId(application.getOrderId())
                 .orElseThrow(() -> new CustomException(ErrorCode.PAYMENT_NOT_FOUND));
 
@@ -293,12 +304,30 @@ public class OneToOneService {
             processPaymentCancel(adminContext, application, refund);
         }
 
+        cancelMatchingAndUpdatePartner(application);
         application.cancel(cancelRequest.getCancelReason(), refund.getAmount());
         payment.setRefundedAt(LocalDateTime.now());
         payment.setRefundAmount(refund.getAmount());
         payment.setStatus(PaymentStatus.CANCELLED);
 
         cancelRequest.approve((long)refund.getAmount());
+    }
+
+    private void cancelMatchingAndUpdatePartner(OneToOne application) {
+        matchingRepository.findByMaleApplicationOrFemaleApplication(application, application)
+                .ifPresent(matching -> {
+                    OneToOne partnerApplication = application.equals(matching.getMaleApplication())
+                            ? matching.getFemaleApplication()
+                            : matching.getMaleApplication();
+
+                    if (partnerApplication.getStatus() == ApplicationStatus.PAYMENT_COMPLETED) {
+                        partnerApplication.setStatus(ApplicationStatus.PARTNER_CANCELLED_AFTER_PAYMENT);
+                    } else {
+                        partnerApplication.setStatus(ApplicationStatus.PARTNER_CANCELLED_BEFORE_PAYMENT);
+                    }
+
+                    matchingRepository.delete(matching);
+                });
     }
 
     @Transactional
