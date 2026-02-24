@@ -7,6 +7,9 @@ import com.oceandate.backend.domain.matching.enums.ApplicationStatus;
 import com.oceandate.backend.domain.matching.enums.EventStatus;
 import com.oceandate.backend.domain.matching.repository.RotationEventRepository;
 import com.oceandate.backend.domain.matching.repository.RotationRepository;
+import com.oceandate.backend.domain.notification.dto.ApprovalCompletedNotificationRequest;
+import com.oceandate.backend.domain.notification.entity.RelatedEntityType;
+import com.oceandate.backend.domain.notification.service.NotificationService;
 import com.oceandate.backend.domain.payment.dto.PaymentCancelRequest;
 import com.oceandate.backend.domain.payment.dto.RefundResponse;
 import com.oceandate.backend.domain.payment.entity.Payment;
@@ -41,6 +44,7 @@ public class RotationService {
     private final PaymentRepository paymentRepository;
     private final PaymentService paymentService;
     private final SmsService smsService;
+    private final NotificationService notificationService;
 
     @Value("${app.frontend-url:http://localhost:3000}")
     private String frontendUrl;
@@ -117,6 +121,15 @@ public void updateStatus(Long id, ApplicationStatus status) {
                 application.getOrderId(),
                 paymentUrl
         );
+        notificationService.sendApprovalCompleted(new ApprovalCompletedNotificationRequest(
+                application.getMember(),
+                application.getEvent().getEventName(),
+                application.getEvent().getEventDateTime(),
+                paymentUrl,
+                RelatedEntityType.ROTATION,
+                application.getId(),
+                null
+        ));
     }
     application.setStatus(status);
 }
