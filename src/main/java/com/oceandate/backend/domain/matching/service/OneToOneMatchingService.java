@@ -8,6 +8,9 @@ import com.oceandate.backend.domain.matching.enums.ApplicationStatus;
 import com.oceandate.backend.domain.matching.repository.OneToOneEventRepository;
 import com.oceandate.backend.domain.matching.repository.OneToOneMatchingRepository;
 import com.oceandate.backend.domain.matching.repository.OneToOneRepository;
+import com.oceandate.backend.domain.notification.dto.MatchingSuccessNotificationRequest;
+import com.oceandate.backend.domain.notification.entity.RelatedEntityType;
+import com.oceandate.backend.domain.notification.service.NotificationService;
 import com.oceandate.backend.domain.user.entity.Sex;
 import com.oceandate.backend.global.exception.CustomException;
 import com.oceandate.backend.global.exception.constant.ErrorCode;
@@ -28,6 +31,7 @@ public class OneToOneMatchingService {
     private final OneToOneMatchingRepository matchingRepository;
     private final OneToOneRepository oneToOneRepository;
     private final OneToOneEventRepository eventRepository;
+    private final NotificationService notificationService;
 
     @Transactional
     public void createMatching(MatchingCreateRequest request){
@@ -69,7 +73,25 @@ public class OneToOneMatchingService {
                 : ApplicationStatus.PAYMENT_PENDING);
         femaleApplication.setConfirmedDate(request.getConfirmedDate());
 
-        matchingRepository.save(matching);
+        OneToOneMatching savedMatching = matchingRepository.save(matching);
+
+        notificationService.sendMatchingSuccess(new MatchingSuccessNotificationRequest(
+                maleApplication.getMember(),
+                event.getEventName(),
+                femaleApplication.getMember().getName(),
+                RelatedEntityType.ONE_TO_ONE_MATCHING,
+                savedMatching.getId(),
+                null
+        ));
+        notificationService.sendMatchingSuccess(
+                new MatchingSuccessNotificationRequest(
+                femaleApplication.getMember(),
+                event.getEventName(),
+                maleApplication.getMember().getName(),
+                RelatedEntityType.ONE_TO_ONE_MATCHING,
+                savedMatching.getId(),
+                null
+        ));
     }
 
     public List<LocalDate> getCommonPreferredDates(Long maleApplicationId, Long femaleApplicationId){

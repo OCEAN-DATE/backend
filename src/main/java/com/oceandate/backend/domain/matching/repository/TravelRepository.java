@@ -10,6 +10,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -69,4 +70,14 @@ public interface TravelRepository extends JpaRepository<Travel, Long> {
             @Param("status") ApplicationStatus status
     );
     Optional<Travel> findByOrderId(String orderId);
+
+    @Query("""
+                SELECT t FROM Travel t
+                JOIN FETCH t.member m
+                JOIN FETCH t.event e
+                WHERE t.status = 'APPROVED'
+                  AND e.eventStartDate = :date
+            """)
+    List<Travel> findApprovedByEventStartDate(@Param("date") LocalDate date);
+
 }

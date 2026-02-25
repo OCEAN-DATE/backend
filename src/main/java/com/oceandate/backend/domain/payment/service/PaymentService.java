@@ -9,6 +9,9 @@ import com.oceandate.backend.domain.matching.entity.Travel;
 import com.oceandate.backend.domain.matching.enums.ApplicationStatus;
 import com.oceandate.backend.domain.matching.repository.OneToOneRepository;
 import com.oceandate.backend.domain.matching.repository.RotationRepository;
+import com.oceandate.backend.domain.notification.dto.PaymentCompletedNotificationRequest;
+import com.oceandate.backend.domain.notification.entity.RelatedEntityType;
+import com.oceandate.backend.domain.notification.service.NotificationService;
 import com.oceandate.backend.domain.matching.repository.TravelRepository;
 import com.oceandate.backend.domain.payment.client.TossPaymentClient;
 import com.oceandate.backend.domain.payment.dto.*;
@@ -45,6 +48,7 @@ public class PaymentService {
     private final TravelRepository travelRepository;
     private final MemberCouponRepository memberCouponRepository;
     private final PaymentRepository paymentRepository;
+    private final NotificationService notificationService;
     private final TossPaymentClient tossPaymentClient;
     private final ObjectMapper objectMapper;
 
@@ -138,7 +142,6 @@ public class PaymentService {
     }
 
     private <T extends Matching> PaymentConfirmResponse processPayment(T application, PaymentConfirmRequest request) {
-
         Payment payment = paymentRepository.findByOrderId(request.getOrderId())
                 .orElseThrow(() -> new CustomException(ErrorCode.ORDER_NOT_FOUND));
 
@@ -172,6 +175,7 @@ public class PaymentService {
                 application.setStatus(ApplicationStatus.PAYMENT_COMPLETED);
 
                 try {
+                    sendPaymentCompletedNotification(application, payment.getFinalAmount());
                     paymentRepository.flush();
                 } catch (Exception dbException) {
                     log.error("DB 저장 실패, 결제 취소 시도 - orderId: {}, paymentKey: {}",
@@ -209,6 +213,53 @@ public class PaymentService {
         } catch (Exception cancelException) {
             log.error("결제 취소 실패! 수동 처리 필요 - paymentKey: {}", paymentKey, cancelException);
         }
+    }
+
+    private void sendPaymentCompletedNotification(Matching application, int amount) {
+        RelatedEntityType relatedEntityType = resolveRelatedEntityType(application);
+        String eventName = resolveEventName(application);
+        LocalDateTime eventDateTime = resolveEventDateTime(application);
+
+        notificationService.sendPaymentCompleted(new PaymentCompletedNotificationRequest(
+                application.getMember(),
+                application.getOrderId(),
+                amount,
+                eventName,
+                eventDateTime,
+                relatedEntityType,
+                application.getId(),
+                null
+        ));
+    }
+
+    private RelatedEntityType resolveRelatedEntityType(Matching application) {
+        if (application instanceof OneToOne) {
+            return RelatedEntityType.ONE_TO_ONE;
+        }
+        if (application instanceof Rotation) {
+            return RelatedEntityType.ROTATION;
+        }
+        throw new CustomException(ErrorCode.INVALID_MATCHING_TYPE);
+    }
+
+    private String resolveEventName(Matching application) {
+        if (application instanceof OneToOne oneToOne) {
+            return oneToOne.getEvent().getEventName();
+        }
+        if (application instanceof Rotation rotation) {
+            return rotation.getEvent().getEventName();
+        }
+        throw new CustomException(ErrorCode.INVALID_MATCHING_TYPE);
+    }
+
+    private LocalDateTime resolveEventDateTime(Matching application) {
+        if (application instanceof OneToOne oneToOne) {
+            return oneToOne.getConfirmedDate();
+        }
+        if (application instanceof Rotation rotation) {
+            return rotation.getEvent().getEventDateTime();
+        }
+        return null;
     }
 
     public String getPaymentByOrderId(AccountContext accountContext, String orderId) {
